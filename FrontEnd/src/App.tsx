@@ -4,6 +4,7 @@ import { Dashboard } from "@/pages/Dashboard";
 import { Holdings } from "@/pages/Holdings";
 import { PoolDetail } from "@/pages/PoolDetail";
 import { CowDetail } from "@/pages/CowDetail";
+import { Rancher } from "@/pages/Rancher";
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
           <Route path="/investor/holdings" element={<Holdings />} />
           <Route path="/investor/holdings/:id" element={<PoolDetail />} />
           <Route path="/investor/cows/:cowId" element={<CowDetail />} />
+          <Route path="/rancher" element={<Rancher />} />
         </Route>
         <Route path="*" element={<Navigate to="/investor" replace />} />
       </Routes>

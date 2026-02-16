@@ -1,11 +1,12 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { LayoutDashboard, Warehouse } from "lucide-react";
+import { LayoutDashboard, Warehouse, User } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { to: "/investor", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/investor/holdings", label: "Holdings", icon: Warehouse, end: false },
+  { to: "/rancher", label: "Rancher", icon: User, end: false },
 ] as const;
 
 export function AppShell() {
