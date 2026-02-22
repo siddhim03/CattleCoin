@@ -1,3 +1,5 @@
+const API_BASE = "http://localhost:3000/api";
+
 import type { Pool, Cow, PoolDetail, PortfolioSummary } from "./types";
 import {
   POOLS,
@@ -47,6 +49,17 @@ export async function getPools(): Promise<Pool[]> {
   await delay();
   return [...POOLS];
 }
+
+// fetch('/api/pools')
+// export async function getPools(): Promise<Pool[]> {
+//   const res = await fetch(`${API_BASE}/pools`);
+
+//   if (!res.ok) {
+//     throw new Error("Failed to fetch pools");
+//   }
+
+//   return res.json();
+// }
 
 // TODO: replace with fetch(`/api/pools/${poolId}`)
 export async function getPoolById(poolId: string): Promise<PoolDetail | null> {
