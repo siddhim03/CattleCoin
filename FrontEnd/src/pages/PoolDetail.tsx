@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ChevronRight, FileText, ShieldCheck, ClipboardList, ArrowLeftRight, Award, Shield, PlusCircle } from "lucide-react";
+import { ChevronRight, FileText, ShieldCheck, ClipboardList, ArrowLeftRight, Award, Shield, PlusCircle, ExternalLink } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
@@ -15,7 +15,7 @@ import { BudgetBreakdown } from "@/components/pool/BudgetBreakdown";
 import { CowsTable, CowsTableSkeleton } from "@/components/tables/CowsTable";
 import { getPoolById, getPoolCows } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
-import type { PoolDetail as PoolDetailType, Cow, Document } from "@/lib/types";
+import type { PoolDetail as PoolDetailType, Cow, Document, PurchaseStatus } from "@/lib/types";
 import { formatUsd, formatNumber } from "@/lib/utils";
 
 const DOC_ICONS: Record<Document["type"], typeof FileText> = {
@@ -26,6 +26,17 @@ const DOC_ICONS: Record<Document["type"], typeof FileText> = {
   insurance: Shield,
   other: FileText,
 };
+
+const STATUS_STYLES: Record<PurchaseStatus, string> = {
+  available: "bg-green-50 text-green-700 border-green-200",
+  pending: "bg-yellow-50 text-yellow-700 border-yellow-200",
+  sold: "bg-slate-50 text-slate-600 border-slate-200",
+};
+
+function abbreviateAddress(addr: string): string {
+  if (addr.length <= 14) return addr;
+  return `${addr.slice(0, 8)}…${addr.slice(-6)}`;
+}
 
 export function PoolDetail() {
   const { id } = useParams<{ id: string }>();
@@ -64,9 +75,9 @@ export function PoolDetail() {
   if (notFound) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <p className="text-lg font-semibold">Pool not found</p>
+        <p className="text-lg font-semibold">Herd not found</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          No pool with ID &ldquo;{id}&rdquo; exists.
+          No herd with ID &ldquo;{id}&rdquo; exists.
         </p>
         <Link
           to="/investor/holdings"
@@ -102,34 +113,40 @@ export function PoolDetail() {
           <Skeleton className="h-4 w-32" />
         </div>
       ) : data ? (
-        <div className="flex items-center gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-bold">{data.pool.name}</h2>
-              <Badge
-                variant="outline"
-                className="bg-slate-50 text-slate-600 border-slate-200"
-              >
-                Lot
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-sm text-muted-foreground">{data.pool.id}</span>
-              {data.pool.cohortLabel && (
-                <>
-                  <Separator orientation="vertical" className="h-3" />
-                  <span className="text-sm text-muted-foreground">
-                    {data.pool.cohortLabel}
-                  </span>
-                </>
-              )}
-              <Separator orientation="vertical" className="h-3" />
-              <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
-                {data.pool.geneticsLabel}
-              </span>
-              <StageBadge stage={data.pool.dominantStage} />
-              <VerifiedBadge verified={data.pool.verified} showLabel />
-            </div>
+        <div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-2xl font-bold">{data.pool.name}</h2>
+            <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200">
+              Lot
+            </Badge>
+            <Badge variant="outline" className={STATUS_STYLES[data.pool.purchaseStatus]}>
+              {data.pool.purchaseStatus.charAt(0).toUpperCase() + data.pool.purchaseStatus.slice(1)}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <span className="text-sm text-muted-foreground font-mono">{data.pool.herdId}</span>
+            {data.pool.cohortLabel && (
+              <>
+                <Separator orientation="vertical" className="h-3" />
+                <span className="text-sm text-muted-foreground">
+                  {data.pool.cohortLabel}
+                </span>
+              </>
+            )}
+            <Separator orientation="vertical" className="h-3" />
+            <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
+              {data.pool.geneticsLabel}
+            </span>
+            <StageBadge stage={data.pool.dominantStage} />
+            <VerifiedBadge verified={data.pool.verified} showLabel />
+          </div>
+          {/* Contract address */}
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <span className="text-xs text-muted-foreground">Contract:</span>
+            <span className="font-mono text-xs text-muted-foreground">
+              {abbreviateAddress(data.pool.contractAddress)}
+            </span>
+            <ExternalLink className="h-3 w-3 text-muted-foreground" />
           </div>
         </div>
       ) : null}
@@ -147,16 +164,16 @@ export function PoolDetail() {
           <>
             <KpiCard
               title="Tokens Held (ERC-20)"
-              value={formatNumber(data.pool.erc20Balance)}
-              subtitle="of 20 issued"
+              value={formatNumber(data.pool.tokenAmount)}
+              subtitle={`of ${formatNumber(data.pool.totalSupply)} total supply`}
             />
             <KpiCard
               title="Lot Size"
               value={`${data.pool.backingHerdCount} head`}
             />
             <KpiCard
-              title="Investment to Date"
-              value={formatUsd(data.pool.totalCostUsd)}
+              title="Listing Price"
+              value={formatUsd(data.pool.listingPrice)}
             />
             <KpiCard
               title="Net Expected"

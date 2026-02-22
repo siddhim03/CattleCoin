@@ -1,4 +1,4 @@
-import type { Pool, Cow, PoolDetail, PortfolioSummary } from "./types";
+import type { Pool, Cow, CowDetailData, PoolDetail, PortfolioSummary } from "./types";
 import {
   POOLS,
   COWS,
@@ -9,6 +9,10 @@ import {
   getPoolEvents,
   getPoolCows as getPoolCowsMock,
   getPoolDocuments,
+  getCowWeights,
+  getCowEPDs,
+  getCowHealthRecords,
+  getCowValuations,
 } from "./mock";
 
 // Simulates network latency for realistic loading states.
@@ -22,7 +26,7 @@ export async function getPortfolio(): Promise<PortfolioSummary> {
 
   const portfolioValueUsd = POOLS.reduce((s, p) => s + p.positionValueUsd, 0);
   const avgRisk = Math.round(
-    POOLS.reduce((s, p) => s + (p.netExpectedUsd / p.totalCostUsd) * 100, 0) /
+    POOLS.reduce((s, p) => s + (p.netExpectedUsd / p.listingPrice) * 100, 0) /
       POOLS.length,
   );
 
@@ -70,7 +74,17 @@ export async function getPoolCows(poolId: string): Promise<Cow[]> {
 }
 
 // TODO: replace with fetch(`/api/cows/${cowId}`)
-export async function getCowById(cowId: string): Promise<Cow | null> {
+// Returns full CowDetailData including weights, EPDs, health records, and valuations.
+export async function getCowById(cowId: string): Promise<CowDetailData | null> {
   await delay(300);
-  return COWS.find((c) => c.cowId === cowId) ?? null;
+  const cow = COWS.find((c) => c.cowId === cowId);
+  if (!cow) return null;
+
+  return {
+    cow,
+    weights: getCowWeights(cowId),
+    epds: getCowEPDs(cowId),
+    healthRecords: getCowHealthRecords(cowId),
+    valuations: getCowValuations(cowId),
+  };
 }

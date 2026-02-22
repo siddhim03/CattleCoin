@@ -1,73 +1,137 @@
-# Cattle Token - Investor Dashboard (MVP)
+# CattleCoin
 
-Frontend-only MVP investor dashboard for a cattle tokenization platform.
+A cattle tokenization platform that lets investors buy fractional ERC-20 ownership stakes in livestock herds, track individual cattle through the full supply chain, and view real-time valuations backed by on-chain data.
 
-## Quick Start
+---
+
+## Monorepo Structure
+
+```
+CattleCoin/
+├── FrontEnd/              React + TypeScript investor dashboard
+├── BackEnd/
+│   └── Database/          Postgres schema + Docker setup
+├── docker-compose.yml     Starts the local Postgres database
+├── erd.html               Entity Relationship Diagram (open in browser)
+└── .env.example           Copy to .env and fill in credentials
+```
+
+---
+
+## Prerequisites
+
+| Tool | Version |
+|------|---------|
+| Node.js | 18+ |
+| npm | 9+ |
+| Docker Desktop | latest |
+
+---
+
+## Running the App for Development
+
+### 1 — Start the database
 
 ```bash
+# From the repo root
+docker compose up -d
+```
+
+Confirm the container is running:
+
+```bash
+docker ps
+# should show cattlecoin-db on port 5432
+```
+
+Run migrations to apply the schema:
+
+```bash
+chmod +x BackEnd/Database/runMigrations.sh
+./BackEnd/Database/runMigrations.sh
+```
+
+### 2 — Start the frontend
+
+```bash
+cd FrontEnd
 npm install
 npm run dev
 ```
 
-Open http://localhost:5173 — you'll be redirected to `/investor`.
+Open **http://localhost:5173** — you will be redirected to `/investor`.
 
-## Routes
+> The frontend currently runs entirely on mock data. No backend API server is required to use the investor dashboard.
 
-| Path                        | Page             | Description                                 |
-| --------------------------- | ---------------- | ------------------------------------------- |
-| `/investor`                 | Dashboard        | KPI cards, portfolio chart, events, top 5   |
-| `/investor/holdings`        | Holdings         | Searchable/filterable/sortable holdings     |
-| `/investor/holdings/:id`    | Holding Detail   | Supply chain stepper, valuation, risk, docs |
+---
 
-## Project Structure
+## Environment Variables
 
-```
-src/
-├── components/
-│   ├── charts/          LineChartCard (Recharts wrapper)
-│   ├── common/          KpiCard, StageBadge, VerifiedBadge
-│   ├── layout/          AppShell (sidebar + header + Outlet)
-│   ├── lifecycle/       SupplyChainStepper
-│   ├── tables/          HoldingsTable
-│   └── ui/              shadcn/ui primitives (Card, Badge, Button, etc.)
-├── lib/
-│   ├── types.ts         TypeScript data models
-│   ├── mock.ts          12 holdings + lifecycle events (mock data)
-│   ├── api.ts           Async API layer (returns mock data)
-│   └── utils.ts         cn(), formatUsd(), formatPct(), formatDate()
-├── pages/
-│   ├── Dashboard.tsx
-│   ├── Holdings.tsx
-│   └── HoldingDetail.tsx
-├── App.tsx              Router setup
-├── main.tsx             Entry point
-└── index.css            Tailwind v4 + theme tokens
+Copy `.env.example` to `.env` in the repo root:
+
+```bash
+cp .env.example .env
 ```
 
-## Mock Data
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `POSTGRES_DB` | `cattlecoin` | Database name |
+| `POSTGRES_USER` | `cattlecoin` | Database user |
+| `POSTGRES_PASSWORD` | `cattlecoin` | Database password |
 
-All mock data lives in `src/lib/mock.ts`:
-- **12 holdings** across all 5 supply-chain stages
-- **34 lifecycle events** (3+ per holding)
-- Valuation time series are generated procedurally
+---
 
-## Swapping in Real APIs
+## Database
 
-The API layer is in `src/lib/api.ts`. Each function has a `// TODO: replace with fetch(...)` comment. Replace the mock implementations with real `fetch()` calls:
+- **Engine**: PostgreSQL 16 via Docker
+- **Connection**: `postgresql://cattlecoin:cattlecoin@localhost:5432/cattlecoin`
+- **Schema**: See `erd.html` (open in any browser) or `BackEnd/Database/README.md`
+- **Migrations**: `BackEnd/Database/migrations/`
 
-| Function            | Mock Source       | Future Endpoint             |
-| ------------------- | ----------------- | --------------------------- |
-| `getPortfolio()`    | Aggregated mocks  | `GET /api/portfolio`        |
-| `getHoldings()`     | `HOLDINGS` array  | `GET /api/holdings`         |
-| `getHoldingById(id)`| `buildHoldingDetail()` | `GET /api/holdings/:id` |
+See [BackEnd/Database/README.md](BackEnd/Database/README.md) for full database docs.
 
-The return types (`PortfolioSummary`, `Holding[]`, `HoldingDetail`) are defined in `src/lib/types.ts` — keep the same shape from your backend.
+---
 
-## Tech Stack
+## Frontend
 
-- Vite + React 19 + TypeScript
-- React Router v7
-- Tailwind CSS v4
-- shadcn/ui (Radix primitives)
-- Recharts
-- Lucide icons
+- **Framework**: React 19 + TypeScript + Vite
+- **Styling**: Tailwind CSS v4 + shadcn/ui
+- **Charts**: Recharts
+- **Router**: React Router v7
+
+See [FrontEnd/README.md](FrontEnd/README.md) for full frontend docs.
+
+---
+
+## Database Schema (ERD Summary)
+
+Open `erd.html` in a browser to view the full interactive diagram. Core tables:
+
+| Table | Description |
+|-------|-------------|
+| `User` | Investors and ranchers |
+| `Herd` | A physical cattle herd owned by a rancher |
+| `Cow` | Individual animal records (registration, breed, sex, lineage, genomics) |
+| `TokenPool` | ERC-20 token contract — one per Herd |
+| `Ownership` | Investor ↔ TokenPool many-to-many (token balances) |
+| `Transaction` | On-chain buy/sell/mint/redeem audit log |
+| `CowWeights` | Time-series weight records per animal |
+| `CowEPDs` | Expected Progeny Differences (genetic trait scores) |
+| `CowHealth` | Vaccination and health program records |
+| `CowValuation` | Scoring-based valuation snapshots per animal |
+
+---
+
+## Connecting the Frontend to a Real API
+
+All API calls are in `FrontEnd/src/lib/api.ts`. Each function has a `// TODO: replace with fetch(...)` comment:
+
+| Function | Current | Planned Endpoint |
+|----------|---------|-----------------|
+| `getPortfolio()` | mock aggregation | `GET /api/portfolio` |
+| `getPools()` | mock array | `GET /api/pools` |
+| `getPoolById(id)` | mock lookup | `GET /api/pools/:id` |
+| `getPoolCows(id)` | mock filter | `GET /api/pools/:id/cows` |
+| `getCowById(cowId)` | mock lookup | `GET /api/cows/:cowId` |
+
+Return types are defined in `FrontEnd/src/lib/types.ts`.

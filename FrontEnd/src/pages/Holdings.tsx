@@ -48,7 +48,7 @@ export function Holdings() {
     const matchesSearch =
       !search ||
       p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.id.toLowerCase().includes(search.toLowerCase()) ||
+      p.herdId.toLowerCase().includes(search.toLowerCase()) ||
       p.geneticsLabel.toLowerCase().includes(search.toLowerCase());
     const matchesStage =
       stageFilter === "ALL" || p.dominantStage === stageFilter;
