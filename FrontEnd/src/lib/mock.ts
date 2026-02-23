@@ -1,12 +1,16 @@
 import type {
   Pool,
   Cow,
-  CowHealth,
+  CowWeight,
+  CowEPD,
+  CowHealthRecord,
+  CowValuation,
   Document,
   LifecycleEvent,
   SeriesPoint,
   BudgetItem,
   Stage,
+  SexCode,
 } from "./types";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -15,6 +19,12 @@ function daysAgo(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() - n);
   return d.toISOString();
+}
+
+function dateAgo(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().split("T")[0];
 }
 
 function generateSeries(
@@ -36,26 +46,37 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// ── Pools / Herds ────────────────────────────────────────────────────────────
+// ── Pools / Herds ─────────────────────────────────────────────────────────────
+// Combines Herd + TokenPool + Ownership data for investor view.
+// All herds are herd/lot investments (ERC-20).
+// Investors buy into entire lots; individual cattle are tracked per Cow table.
 
 export const POOLS: Pool[] = [
   {
-    id: "POOL-001",
-    name: "Angus Prime Herd A",
+    id: "HERD-001",
+    herdId: "HERD-001",
+    rancherId: "usr-rancher-01",
+    listingPrice: 198_000,
+    purchaseStatus: "available",
+    poolId: "POOL-TKN-001",
+    totalSupply: 20,
+    contractAddress: "0x1A2b3C4d5E6f7a8B9c0D1e2F3a4B5c6D7e8F9a01",
+    tokenAmount: 20,
+    name: "Angus Prime Lot A",
     poolType: "herd",
-    cohortLabel: "Q4 2025 Angus",
-    erc20Balance: 5000,
+    cohortLabel: "Fall 2025 — Angus",
+    geneticsLabel: "Angus AI Select",
+    season: "Fall",
     positionValueUsd: 248_000,
-    backingHerdCount: 12,
-    totalCostUsd: 198_000,
+    backingHerdCount: 32,
     expectedRevenueUsd: 276_000,
     netExpectedUsd: 78_000,
     stageBreakdown: [
       { stage: "RANCH", pct: 0 },
       { stage: "AUCTION", pct: 0 },
-      { stage: "BACKGROUNDING", pct: 8 },
-      { stage: "FEEDLOT", pct: 67 },
-      { stage: "PROCESSING", pct: 25 },
+      { stage: "BACKGROUNDING", pct: 0 },
+      { stage: "FEEDLOT", pct: 100 },
+      { stage: "PROCESSING", pct: 0 },
       { stage: "DISTRIBUTION", pct: 0 },
     ],
     dominantStage: "FEEDLOT",
@@ -63,20 +84,28 @@ export const POOLS: Pool[] = [
     lastUpdateIso: daysAgo(1),
   },
   {
-    id: "POOL-002",
-    name: "Hereford Select B",
+    id: "HERD-002",
+    herdId: "HERD-002",
+    rancherId: "usr-rancher-02",
+    listingPrice: 128_000,
+    purchaseStatus: "available",
+    poolId: "POOL-TKN-002",
+    totalSupply: 20,
+    contractAddress: "0x2B3c4D5e6F7a8b9C0d1E2f3A4b5C6d7E8f9a0B02",
+    tokenAmount: 20,
+    name: "Hereford Select Lot B",
     poolType: "herd",
-    cohortLabel: "Q3 2025 Hereford",
-    erc20Balance: 3200,
+    cohortLabel: "Spring 2025 — Hereford",
+    geneticsLabel: "Hereford Registered",
+    season: "Spring",
     positionValueUsd: 156_000,
-    backingHerdCount: 8,
-    totalCostUsd: 128_000,
+    backingHerdCount: 28,
     expectedRevenueUsd: 172_000,
     netExpectedUsd: 44_000,
     stageBreakdown: [
-      { stage: "RANCH", pct: 50 },
-      { stage: "AUCTION", pct: 25 },
-      { stage: "BACKGROUNDING", pct: 25 },
+      { stage: "RANCH", pct: 100 },
+      { stage: "AUCTION", pct: 0 },
+      { stage: "BACKGROUNDING", pct: 0 },
       { stage: "FEEDLOT", pct: 0 },
       { stage: "PROCESSING", pct: 0 },
       { stage: "DISTRIBUTION", pct: 0 },
@@ -86,43 +115,59 @@ export const POOLS: Pool[] = [
     lastUpdateIso: daysAgo(2),
   },
   {
-    id: "POOL-003",
-    name: "Wagyu Cross C",
+    id: "HERD-003",
+    herdId: "HERD-003",
+    rancherId: "usr-rancher-01",
+    listingPrice: 420_000,
+    purchaseStatus: "pending",
+    poolId: "POOL-TKN-003",
+    totalSupply: 20,
+    contractAddress: "0x3C4d5E6f7A8b9c0D1e2F3a4B5c6D7e8F9a0b1C03",
+    tokenAmount: 20,
+    name: "Wagyu Cross Lot C",
     poolType: "herd",
-    cohortLabel: "Q1 2025 Wagyu",
-    erc20Balance: 8000,
+    cohortLabel: "Fall 2024 — Wagyu",
+    geneticsLabel: "Wagyu F1 Cross",
+    season: "Fall",
     positionValueUsd: 512_000,
-    backingHerdCount: 15,
-    totalCostUsd: 420_000,
+    backingHerdCount: 45,
     expectedRevenueUsd: 580_000,
     netExpectedUsd: 160_000,
     stageBreakdown: [
       { stage: "RANCH", pct: 0 },
       { stage: "AUCTION", pct: 0 },
       { stage: "BACKGROUNDING", pct: 0 },
-      { stage: "FEEDLOT", pct: 13 },
-      { stage: "PROCESSING", pct: 60 },
-      { stage: "DISTRIBUTION", pct: 27 },
+      { stage: "FEEDLOT", pct: 0 },
+      { stage: "PROCESSING", pct: 100 },
+      { stage: "DISTRIBUTION", pct: 0 },
     ],
     dominantStage: "PROCESSING",
     verified: true,
     lastUpdateIso: daysAgo(0),
   },
   {
-    id: "POOL-004",
-    name: "Brahman Mix D",
+    id: "HERD-004",
+    herdId: "HERD-004",
+    rancherId: "usr-rancher-03",
+    listingPrice: 144_000,
+    purchaseStatus: "available",
+    poolId: "POOL-TKN-004",
+    totalSupply: 20,
+    contractAddress: "0x4D5e6F7a8B9c0d1E2f3A4b5C6d7E8f9A0b1c2D04",
+    tokenAmount: 20,
+    name: "Brahman Mix Lot D",
     poolType: "herd",
-    cohortLabel: "Q4 2025 Brahman",
-    erc20Balance: 2400,
-    positionValueUsd: 98_000,
-    backingHerdCount: 6,
-    totalCostUsd: 84_000,
-    expectedRevenueUsd: 108_000,
-    netExpectedUsd: 24_000,
+    cohortLabel: "Fall 2025 — Brahman",
+    geneticsLabel: "Brahman AI Select",
+    season: "Fall",
+    positionValueUsd: 178_000,
+    backingHerdCount: 24,
+    expectedRevenueUsd: 198_000,
+    netExpectedUsd: 54_000,
     stageBreakdown: [
-      { stage: "RANCH", pct: 17 },
-      { stage: "AUCTION", pct: 50 },
-      { stage: "BACKGROUNDING", pct: 33 },
+      { stage: "RANCH", pct: 0 },
+      { stage: "AUCTION", pct: 100 },
+      { stage: "BACKGROUNDING", pct: 0 },
       { stage: "FEEDLOT", pct: 0 },
       { stage: "PROCESSING", pct: 0 },
       { stage: "DISTRIBUTION", pct: 0 },
@@ -132,14 +177,22 @@ export const POOLS: Pool[] = [
     lastUpdateIso: daysAgo(3),
   },
   {
-    id: "POOL-005",
-    name: "Black Angus E",
+    id: "HERD-005",
+    herdId: "HERD-005",
+    rancherId: "usr-rancher-02",
+    listingPrice: 310_000,
+    purchaseStatus: "sold",
+    poolId: "POOL-TKN-005",
+    totalSupply: 20,
+    contractAddress: "0x5E6f7A8b9C0d1e2F3a4B5c6D7e8F9a0B1c2d3E05",
+    tokenAmount: 20,
+    name: "Black Angus Lot E",
     poolType: "herd",
-    cohortLabel: "Q2 2025 Black Angus",
-    erc20Balance: 6500,
+    cohortLabel: "Spring 2025 — Black Angus",
+    geneticsLabel: "Black Angus Premium AI",
+    season: "Spring",
     positionValueUsd: 385_000,
-    backingHerdCount: 14,
-    totalCostUsd: 310_000,
+    backingHerdCount: 38,
     expectedRevenueUsd: 420_000,
     netExpectedUsd: 110_000,
     stageBreakdown: [
@@ -147,30 +200,38 @@ export const POOLS: Pool[] = [
       { stage: "AUCTION", pct: 0 },
       { stage: "BACKGROUNDING", pct: 0 },
       { stage: "FEEDLOT", pct: 0 },
-      { stage: "PROCESSING", pct: 21 },
-      { stage: "DISTRIBUTION", pct: 79 },
+      { stage: "PROCESSING", pct: 0 },
+      { stage: "DISTRIBUTION", pct: 100 },
     ],
     dominantStage: "DISTRIBUTION",
     verified: true,
     lastUpdateIso: daysAgo(1),
   },
   {
-    id: "POOL-006",
+    id: "HERD-006",
+    herdId: "HERD-006",
+    rancherId: "usr-rancher-03",
+    listingPrice: 218_000,
+    purchaseStatus: "available",
+    poolId: "POOL-TKN-006",
+    totalSupply: 20,
+    contractAddress: "0x6F7a8B9c0D1e2f3A4b5C6d7E8f9A0b1C2d3e4F06",
+    tokenAmount: 20,
     name: "Charolais Lot F",
     poolType: "herd",
-    cohortLabel: "Q4 2025 Charolais",
-    erc20Balance: 4100,
-    positionValueUsd: 195_000,
-    backingHerdCount: 10,
-    totalCostUsd: 165_000,
-    expectedRevenueUsd: 218_000,
-    netExpectedUsd: 53_000,
+    cohortLabel: "Fall 2025 — Charolais",
+    geneticsLabel: "Charolais Fullblood",
+    season: "Fall",
+    positionValueUsd: 265_000,
+    backingHerdCount: 35,
+    expectedRevenueUsd: 292_000,
+    netExpectedUsd: 74_000,
     stageBreakdown: [
       { stage: "RANCH", pct: 0 },
       { stage: "AUCTION", pct: 0 },
-      { stage: "BACKGROUNDING", pct: 20 },
-      { stage: "FEEDLOT", pct: 60 },
-      { stage: "PROCESSING", pct: 20 },
+      { stage: "BACKGROUNDING", pct: 0 },
+      { stage: "FEEDLOT", pct: 100 },
+      { stage: "PROCESSING", pct: 0 },
       { stage: "DISTRIBUTION", pct: 0 },
     ],
     dominantStage: "FEEDLOT",
@@ -178,19 +239,27 @@ export const POOLS: Pool[] = [
     lastUpdateIso: daysAgo(2),
   },
   {
-    id: "POOL-007",
-    name: "Simmental G",
+    id: "HERD-007",
+    herdId: "HERD-007",
+    rancherId: "usr-rancher-01",
+    listingPrice: 116_000,
+    purchaseStatus: "available",
+    poolId: "POOL-TKN-007",
+    totalSupply: 20,
+    contractAddress: "0x7A8b9C0d1E2f3a4B5c6D7e8F9a0B1c2D3e4f5A07",
+    tokenAmount: 20,
+    name: "Simmental Lot G",
     poolType: "herd",
-    cohortLabel: "Q1 2026 Simmental",
-    erc20Balance: 1800,
-    positionValueUsd: 72_000,
-    backingHerdCount: 5,
-    totalCostUsd: 60_000,
-    expectedRevenueUsd: 82_000,
-    netExpectedUsd: 22_000,
+    cohortLabel: "Spring 2026 — Simmental",
+    geneticsLabel: "Simmental Registered AI",
+    season: "Spring",
+    positionValueUsd: 142_000,
+    backingHerdCount: 22,
+    expectedRevenueUsd: 158_000,
+    netExpectedUsd: 42_000,
     stageBreakdown: [
-      { stage: "RANCH", pct: 80 },
-      { stage: "AUCTION", pct: 20 },
+      { stage: "RANCH", pct: 100 },
+      { stage: "AUCTION", pct: 0 },
       { stage: "BACKGROUNDING", pct: 0 },
       { stage: "FEEDLOT", pct: 0 },
       { stage: "PROCESSING", pct: 0 },
@@ -201,145 +270,122 @@ export const POOLS: Pool[] = [
     lastUpdateIso: daysAgo(5),
   },
   {
-    id: "POOL-008",
-    name: "Red Angus Premium H",
+    id: "HERD-008",
+    herdId: "HERD-008",
+    rancherId: "usr-rancher-02",
+    listingPrice: 365_000,
+    purchaseStatus: "pending",
+    poolId: "POOL-TKN-008",
+    totalSupply: 20,
+    contractAddress: "0x8B9c0D1e2F3a4b5C6d7E8f9A0b1C2d3E4f5a6B08",
+    tokenAmount: 20,
+    name: "Red Angus Premium Lot H",
     poolType: "herd",
-    cohortLabel: "Q3 2025 Red Angus",
-    erc20Balance: 7200,
+    cohortLabel: "Spring 2025 — Red Angus",
+    geneticsLabel: "Red Angus AI Elite",
+    season: "Spring",
     positionValueUsd: 445_000,
-    backingHerdCount: 10,
-    totalCostUsd: 365_000,
+    backingHerdCount: 42,
     expectedRevenueUsd: 495_000,
     netExpectedUsd: 130_000,
     stageBreakdown: [
       { stage: "RANCH", pct: 0 },
       { stage: "AUCTION", pct: 0 },
       { stage: "BACKGROUNDING", pct: 0 },
-      { stage: "FEEDLOT", pct: 30 },
-      { stage: "PROCESSING", pct: 50 },
-      { stage: "DISTRIBUTION", pct: 20 },
+      { stage: "FEEDLOT", pct: 0 },
+      { stage: "PROCESSING", pct: 100 },
+      { stage: "DISTRIBUTION", pct: 0 },
     ],
     dominantStage: "PROCESSING",
     verified: true,
     lastUpdateIso: daysAgo(0),
   },
-
-  // ── Individual Cattle Pools ──────────────────────────────────────────────
-  {
-    id: "IND-001",
-    name: "Premium Wagyu Singles",
-    poolType: "individual",
-    cohortLabel: "Wagyu A5 Grade",
-    erc20Balance: 4,
-    positionValueUsd: 92_000,
-    backingHerdCount: 4,
-    totalCostUsd: 68_000,
-    expectedRevenueUsd: 108_000,
-    netExpectedUsd: 40_000,
-    stageBreakdown: [
-      { stage: "RANCH", pct: 25 },
-      { stage: "AUCTION", pct: 0 },
-      { stage: "BACKGROUNDING", pct: 25 },
-      { stage: "FEEDLOT", pct: 50 },
-      { stage: "PROCESSING", pct: 0 },
-      { stage: "DISTRIBUTION", pct: 0 },
-    ],
-    dominantStage: "FEEDLOT",
-    verified: true,
-    lastUpdateIso: daysAgo(0),
-  },
-  {
-    id: "IND-002",
-    name: "Angus Select Singles",
-    poolType: "individual",
-    cohortLabel: "Certified Angus Beef",
-    erc20Balance: 6,
-    positionValueUsd: 54_000,
-    backingHerdCount: 6,
-    totalCostUsd: 42_000,
-    expectedRevenueUsd: 61_200,
-    netExpectedUsd: 19_200,
-    stageBreakdown: [
-      { stage: "RANCH", pct: 0 },
-      { stage: "AUCTION", pct: 17 },
-      { stage: "BACKGROUNDING", pct: 33 },
-      { stage: "FEEDLOT", pct: 33 },
-      { stage: "PROCESSING", pct: 17 },
-      { stage: "DISTRIBUTION", pct: 0 },
-    ],
-    dominantStage: "BACKGROUNDING",
-    verified: true,
-    lastUpdateIso: daysAgo(1),
-  },
-  {
-    id: "IND-003",
-    name: "Heritage Breed Singles",
-    poolType: "individual",
-    cohortLabel: "Longhorn & Highland",
-    erc20Balance: 3,
-    positionValueUsd: 38_500,
-    backingHerdCount: 3,
-    totalCostUsd: 27_000,
-    expectedRevenueUsd: 42_000,
-    netExpectedUsd: 15_000,
-    stageBreakdown: [
-      { stage: "RANCH", pct: 67 },
-      { stage: "AUCTION", pct: 33 },
-      { stage: "BACKGROUNDING", pct: 0 },
-      { stage: "FEEDLOT", pct: 0 },
-      { stage: "PROCESSING", pct: 0 },
-      { stage: "DISTRIBUTION", pct: 0 },
-    ],
-    dominantStage: "RANCH",
-    verified: false,
-    lastUpdateIso: daysAgo(2),
-  },
 ];
 
-// ── Cows ─────────────────────────────────────────────────────────────────────
+// ── Breed Codes by Herd ───────────────────────────────────────────────────────
 
-const FACILITIES: Record<Stage, string[]> = {
-  RANCH: ["Bar-S Ranch, MT", "Twin Creeks Ranch, WY", "Kobe Valley Ranch, OR", "Sunset Pastures, TX"],
-  AUCTION: ["Amarillo Livestock Exchange", "Regional Auction, CO", "Midwest Auction, IA"],
-  BACKGROUNDING: ["Stocker Fields #1, KS", "Prairie Backgrounding, NE", "High Plains Stocker, OK"],
-  FEEDLOT: ["Feedlot #7, Amarillo TX", "Feedlot #12, TX", "Feedlot #3, NE", "Valley Feedlot, IA"],
-  PROCESSING: ["Premium Meats Co., NE", "Valley Processors, IA", "USDA Plant #42, KS"],
-  DISTRIBUTION: ["Cold Chain Hub, KS", "Midwest Distribution, IL", "Southwest Logistics, AZ"],
+const BREED_CODES_BY_HERD: Record<string, string> = {
+  "HERD-001": "AN",
+  "HERD-002": "HH",
+  "HERD-003": "WA",
+  "HERD-004": "BR",
+  "HERD-005": "BA",
+  "HERD-006": "CH",
+  "HERD-007": "SM",
+  "HERD-008": "RA",
 };
+
+const BREED_NAMES_BY_CODE: Record<string, string> = {
+  AN: "Angus",
+  HH: "Hereford",
+  WA: "Wagyu F1",
+  BR: "Brahman",
+  BA: "Black Angus",
+  CH: "Charolais",
+  SM: "Simmental",
+  RA: "Red Angus",
+};
+
+// ── Location Codes by Stage ───────────────────────────────────────────────────
+
+const LOCATION_CODES: Record<Stage, string[]> = {
+  RANCH: ["RCH-MT-01", "RCH-WY-02", "RCH-OR-03", "RCH-TX-04"],
+  AUCTION: ["AUC-TX-AMR", "AUC-CO-REG", "AUC-IA-MID"],
+  BACKGROUNDING: ["BGD-KS-01", "BGD-NE-PR", "BGD-OK-HP"],
+  FEEDLOT: ["FDL-TX-07", "FDL-TX-12", "FDL-NE-03", "FDL-IA-VLY"],
+  PROCESSING: ["PRC-NE-PM", "PRC-IA-VP", "PRC-KS-42"],
+  DISTRIBUTION: ["DST-KS-CCH", "DST-IL-MID", "DST-AZ-SW"],
+};
+
+// ── Sire/Dam registration prefixes per breed ──────────────────────────────────
+
+const SIRE_PREFIXES: Record<string, string> = {
+  AN: "AAA", HH: "AHA", WA: "AWA", BR: "ABA",
+  BA: "AAA", CH: "ACH", SM: "ASA", RA: "AAA",
+};
+
+// ── Cow Generation ────────────────────────────────────────────────────────────
 
 function generateCowsForPool(pool: Pool): Cow[] {
   const cows: Cow[] = [];
-  let tokenCounter = 1000 + parseInt(pool.id.replace("POOL-", "")) * 100;
+  const breedCode = BREED_CODES_BY_HERD[pool.herdId] ?? "AN";
+  const sexOptions: SexCode[] = ["S", "S", "S", "S", "H", "H", "C"];
+  const healthOptions: Array<"On Track" | "Watch"> = [
+    "On Track", "On Track", "On Track", "On Track", "Watch",
+  ];
+  const sirePrefix = SIRE_PREFIXES[breedCode] ?? "AAA";
+
+  const baseCost = pool.listingPrice / pool.backingHerdCount;
+  const baseRevenue = pool.expectedRevenueUsd / pool.backingHerdCount;
+  const herdNum = pool.herdId.replace("HERD-", "");
 
   for (let i = 0; i < pool.backingHerdCount; i++) {
-    // Distribute cows according to stageBreakdown
-    let cumPct = 0;
-    const roll = ((i + 1) / pool.backingHerdCount) * 100;
-    let cowStage: Stage = "RANCH";
-    for (const sb of pool.stageBreakdown) {
-      cumPct += sb.pct;
-      if (roll <= cumPct) {
-        cowStage = sb.stage;
-        break;
-      }
-    }
-
-    const healthOptions: CowHealth[] = ["On Track", "On Track", "On Track", "Watch", "Issue"];
-    const baseCost = pool.totalCostUsd / pool.backingHerdCount;
-    const baseRevenue = pool.expectedRevenueUsd / pool.backingHerdCount;
+    const cowNum = String(i + 1).padStart(3, "0");
+    const cowId = `COW-${herdNum}-${cowNum}`;
+    const regNum = `${breedCode}${herdNum}${cowNum}`;
+    const birthDaysAgo = 180 + Math.floor(Math.random() * 540);
 
     cows.push({
-      cowId: `COW-${pool.id.replace("POOL-", "")}-${String(i + 1).padStart(3, "0")}`,
-      tokenId: tokenCounter++,
-      poolId: pool.id,
-      stage: cowStage,
-      ranchOrFacility: pick(FACILITIES[cowStage]),
-      weightLb: 600 + Math.floor(Math.random() * 800),
+      cowId,
+      herdId: pool.herdId,
+      registrationNumber: regNum,
+      officialId: `840${herdNum}${cowNum.padStart(9, "0")}`,
+      animalName: `${BREED_NAMES_BY_CODE[breedCode] ?? breedCode} ${herdNum}-${cowNum}`,
+      breedCode,
+      sexCode: pick(sexOptions),
+      birthDate: dateAgo(birthDaysAgo),
+      sireRegistrationNumber: `${sirePrefix}${Math.floor(100000 + Math.random() * 900000)}`,
+      damRegistrationNumber: `${sirePrefix}${Math.floor(100000 + Math.random() * 900000)}`,
+      isGenomicEnhanced: Math.random() > 0.4,
+      createdAt: daysAgo(birthDaysAgo - 5),
+
+      // Derived/computed
+      stage: pool.dominantStage,
+      weightLbs: 600 + Math.floor(Math.random() * 800),
       health: pick(healthOptions),
       daysInStage: 3 + Math.floor(Math.random() * 45),
       costToDateUsd: Math.round(baseCost * (0.7 + Math.random() * 0.6)),
-      projectedExitUsd: Math.round(baseRevenue * (0.85 + Math.random() * 0.3)),
-      updatedIso: daysAgo(Math.floor(Math.random() * 5)),
+      totalValue: Math.round(baseRevenue * (0.85 + Math.random() * 0.3)),
       verified: pool.verified || Math.random() > 0.3,
     });
   }
@@ -349,176 +395,237 @@ function generateCowsForPool(pool: Pool): Cow[] {
 
 export const COWS: Cow[] = POOLS.flatMap(generateCowsForPool);
 
-// ── Lifecycle Events ─────────────────────────────────────────────────────────
+// ── CowWeights ────────────────────────────────────────────────────────────────
 
-export const LIFECYCLE_EVENTS: LifecycleEvent[] = [
-  // POOL-001 events
-  { id: "ev-001", poolId: "POOL-001", stage: "RANCH", verified: true, timestampIso: daysAgo(90), note: "Angus herd born & tagged at Bar-S Ranch." },
-  { id: "ev-002", poolId: "POOL-001", stage: "AUCTION", verified: true, timestampIso: daysAgo(65), note: "Lot sold at Amarillo livestock auction." },
-  { id: "ev-003", poolId: "POOL-001", stage: "BACKGROUNDING", verified: true, timestampIso: daysAgo(50), note: "Entered stocker program for weight gain." },
-  { id: "ev-004", poolId: "POOL-001", stage: "FEEDLOT", verified: true, timestampIso: daysAgo(25), note: "Transferred to feedlot for finishing." },
-  { id: "ev-005", poolId: "POOL-001", cowId: "COW-001-003", stage: "PROCESSING", verified: true, timestampIso: daysAgo(5), note: "3 head entered processing facility." },
+function generateWeightsForCow(cow: Cow): CowWeight[] {
+  const locationCodes = LOCATION_CODES[cow.stage];
+  const weights: CowWeight[] = [];
+  const weightTypes: Array<{ type: "birth" | "weaning" | "yearling" | "sale"; daysOld: number }> = [
+    { type: "birth", daysOld: 0 },
+    { type: "weaning", daysOld: 205 },
+    { type: "yearling", daysOld: 365 },
+    { type: "sale", daysOld: 550 },
+  ];
 
-  // POOL-002 events
-  { id: "ev-006", poolId: "POOL-002", stage: "RANCH", verified: true, timestampIso: daysAgo(40), note: "Hereford calving season complete." },
-  { id: "ev-007", poolId: "POOL-002", cowId: "COW-002-001", stage: "AUCTION", verified: true, timestampIso: daysAgo(15), note: "First group listed for auction." },
+  const birthDaysAgo = Math.round(
+    (new Date().getTime() - new Date(cow.birthDate).getTime()) / 86400000
+  );
 
-  // POOL-003 events
-  { id: "ev-008", poolId: "POOL-003", stage: "RANCH", verified: true, timestampIso: daysAgo(120), note: "Wagyu cross bred on specialty ranch." },
-  { id: "ev-009", poolId: "POOL-003", stage: "AUCTION", verified: true, timestampIso: daysAgo(95), note: "Premium auction — top price per head." },
-  { id: "ev-010", poolId: "POOL-003", stage: "BACKGROUNDING", verified: true, timestampIso: daysAgo(80), note: "Special diet backgrounding program." },
-  { id: "ev-011", poolId: "POOL-003", stage: "FEEDLOT", verified: true, timestampIso: daysAgo(55), note: "Entered specialty feedlot." },
-  { id: "ev-012", poolId: "POOL-003", stage: "PROCESSING", verified: true, timestampIso: daysAgo(15), note: "Processing started at certified plant." },
-  { id: "ev-013", poolId: "POOL-003", stage: "DISTRIBUTION", verified: true, timestampIso: daysAgo(3), note: "First batch in cold chain distribution." },
+  const idBase = parseInt(cow.cowId.replace(/\D/g, "")) * 10;
+  let lastWeight = 80 + Math.floor(Math.random() * 20);
 
-  // POOL-004 events
-  { id: "ev-014", poolId: "POOL-004", stage: "RANCH", verified: true, timestampIso: daysAgo(60), note: "Brahman mix raised, grass-fed." },
-  { id: "ev-015", poolId: "POOL-004", stage: "AUCTION", verified: false, timestampIso: daysAgo(12), note: "Listed for auction — pending verification." },
+  for (let idx = 0; idx < weightTypes.length; idx++) {
+    const wt = weightTypes[idx];
+    if (wt.daysOld > birthDaysAgo) break;
+    const prevDays = idx === 0 ? 0 : weightTypes[idx - 1].daysOld;
+    const gainPerDay = 2.0 + Math.random() * 1.5;
+    if (wt.type !== "birth") {
+      lastWeight = Math.round(lastWeight + gainPerDay * (wt.daysOld - prevDays));
+    }
+    weights.push({
+      weightId: idBase + idx,
+      cowId: cow.cowId,
+      weightDate: dateAgo(birthDaysAgo - wt.daysOld),
+      weightLbs: lastWeight,
+      weightType: wt.type,
+      locationCode: pick(locationCodes),
+    });
+  }
 
-  // POOL-005 events
-  { id: "ev-016", poolId: "POOL-005", stage: "RANCH", verified: true, timestampIso: daysAgo(150), note: "Premium Black Angus raised on pasture." },
-  { id: "ev-017", poolId: "POOL-005", stage: "AUCTION", verified: true, timestampIso: daysAgo(120), note: "Sold to certified buyer." },
-  { id: "ev-018", poolId: "POOL-005", stage: "BACKGROUNDING", verified: true, timestampIso: daysAgo(100), note: "Backgrounding — weight gain program." },
-  { id: "ev-019", poolId: "POOL-005", stage: "FEEDLOT", verified: true, timestampIso: daysAgo(70), note: "Grain-finished program started." },
-  { id: "ev-020", poolId: "POOL-005", stage: "PROCESSING", verified: true, timestampIso: daysAgo(30), note: "USDA inspected processing." },
-  { id: "ev-021", poolId: "POOL-005", stage: "DISTRIBUTION", verified: true, timestampIso: daysAgo(5), note: "Cold chain distribution started." },
+  return weights;
+}
 
-  // POOL-006 events
-  { id: "ev-022", poolId: "POOL-006", stage: "RANCH", verified: true, timestampIso: daysAgo(85), note: "Charolais lot selected and tagged." },
-  { id: "ev-023", poolId: "POOL-006", stage: "AUCTION", verified: true, timestampIso: daysAgo(60), note: "Auction completed successfully." },
-  { id: "ev-024", poolId: "POOL-006", stage: "BACKGROUNDING", verified: true, timestampIso: daysAgo(45), note: "Stocker field intake." },
-  { id: "ev-025", poolId: "POOL-006", stage: "FEEDLOT", verified: true, timestampIso: daysAgo(20), note: "Feedlot finishing started." },
+export const COW_WEIGHTS: CowWeight[] = COWS.flatMap(generateWeightsForCow);
 
-  // POOL-007 events
-  { id: "ev-026", poolId: "POOL-007", stage: "RANCH", verified: true, timestampIso: daysAgo(18), note: "Simmental herd on pasture." },
+// ── CowEPDs ───────────────────────────────────────────────────────────────────
 
-  // POOL-008 events
-  { id: "ev-027", poolId: "POOL-008", stage: "RANCH", verified: true, timestampIso: daysAgo(110), note: "Red Angus premium stock selected." },
-  { id: "ev-028", poolId: "POOL-008", stage: "AUCTION", verified: true, timestampIso: daysAgo(90), note: "Sold at Iowa livestock exchange." },
-  { id: "ev-029", poolId: "POOL-008", stage: "BACKGROUNDING", verified: true, timestampIso: daysAgo(75), note: "Prairie backgrounding program." },
-  { id: "ev-030", poolId: "POOL-008", stage: "FEEDLOT", verified: true, timestampIso: daysAgo(45), note: "Entered Valley Feedlot." },
-  { id: "ev-031", poolId: "POOL-008", stage: "PROCESSING", verified: true, timestampIso: daysAgo(8), note: "Processing started." },
-
-  // Cow-level events (mixed across pools)
-  { id: "ev-032", poolId: "POOL-001", cowId: "COW-001-005", stage: "FEEDLOT", verified: true, timestampIso: daysAgo(2), note: "Weight check — 1,180 lb, on target." },
-  { id: "ev-033", poolId: "POOL-003", cowId: "COW-003-002", stage: "PROCESSING", verified: true, timestampIso: daysAgo(1), note: "USDA grade: Choice." },
-  { id: "ev-034", poolId: "POOL-005", cowId: "COW-005-010", stage: "DISTRIBUTION", verified: true, timestampIso: daysAgo(0), note: "Shipped to Southwest Logistics." },
-  { id: "ev-035", poolId: "POOL-006", cowId: "COW-006-004", stage: "FEEDLOT", verified: false, timestampIso: daysAgo(1), note: "Health watch — mild respiratory, treated." },
-  { id: "ev-036", poolId: "POOL-002", cowId: "COW-002-003", stage: "RANCH", verified: true, timestampIso: daysAgo(3), note: "Vaccination completed." },
-
-  // IND-001 events (Premium Wagyu Singles)
-  { id: "ev-037", poolId: "IND-001", stage: "RANCH", verified: true, timestampIso: daysAgo(75), note: "Wagyu A5 calves selected from specialty ranch." },
-  { id: "ev-038", poolId: "IND-001", stage: "AUCTION", verified: true, timestampIso: daysAgo(50), note: "Individual lot auction — premium bids." },
-  { id: "ev-039", poolId: "IND-001", stage: "BACKGROUNDING", verified: true, timestampIso: daysAgo(35), note: "Specialty diet backgrounding started." },
-  { id: "ev-040", poolId: "IND-001", stage: "FEEDLOT", verified: true, timestampIso: daysAgo(10), note: "Transferred to premium feedlot program." },
-  { id: "ev-041", poolId: "IND-001", cowId: "COW-IND001-001", stage: "FEEDLOT", verified: true, timestampIso: daysAgo(1), note: "Weight check — 1,320 lb, marbling excellent." },
-
-  // IND-002 events (Angus Select Singles)
-  { id: "ev-042", poolId: "IND-002", stage: "RANCH", verified: true, timestampIso: daysAgo(60), note: "Certified Angus selected individually." },
-  { id: "ev-043", poolId: "IND-002", stage: "AUCTION", verified: true, timestampIso: daysAgo(40), note: "Individual purchase at livestock exchange." },
-  { id: "ev-044", poolId: "IND-002", stage: "BACKGROUNDING", verified: true, timestampIso: daysAgo(25), note: "Entered backgrounding program." },
-  { id: "ev-045", poolId: "IND-002", cowId: "COW-IND002-003", stage: "FEEDLOT", verified: true, timestampIso: daysAgo(5), note: "Feedlot intake — grain finishing." },
-  { id: "ev-046", poolId: "IND-002", cowId: "COW-IND002-005", stage: "PROCESSING", verified: true, timestampIso: daysAgo(2), note: "Entered processing, USDA Choice expected." },
-
-  // IND-003 events (Heritage Breed Singles)
-  { id: "ev-047", poolId: "IND-003", stage: "RANCH", verified: false, timestampIso: daysAgo(30), note: "Heritage breeds identified — Longhorn & Highland." },
-  { id: "ev-048", poolId: "IND-003", cowId: "COW-IND003-002", stage: "AUCTION", verified: false, timestampIso: daysAgo(8), note: "Highland cow listed at specialty auction." },
+const EPD_TRAITS: Array<{ code: string }> = [
+  { code: "BW" },
+  { code: "WW" },
+  { code: "YW" },
+  { code: "CW" },
+  { code: "MARB" },
+  { code: "REA" },
 ];
 
-// ── Budget Breakdowns (per pool) ─────────────────────────────────────────────
+function generateEPDsForCow(cow: Cow, idx: number): CowEPD[] {
+  return EPD_TRAITS.map((trait, tIdx) => ({
+    cowEpdId: idx * 100 + tIdx,
+    cowId: cow.cowId,
+    traitCode: trait.code,
+    epdValue: parseFloat((Math.random() * 30 - 5).toFixed(2)),
+    accuracy: parseFloat((0.3 + Math.random() * 0.65).toFixed(2)),
+    percentileRank: Math.floor(Math.random() * 100),
+    evaluationDate: dateAgo(60 + Math.floor(Math.random() * 120)),
+  }));
+}
+
+export const COW_EPDS: CowEPD[] = COWS.flatMap((cow, idx) =>
+  cow.isGenomicEnhanced ? generateEPDsForCow(cow, idx) : []
+);
+
+// ── CowHealthRecords ──────────────────────────────────────────────────────────
+
+const VACCINE_PROGRAMS: Array<{
+  vaccine: string;
+  program: string;
+  certPrefix: string;
+}> = [
+  { vaccine: "IBR-BVD Modified Live", program: "NHTC", certPrefix: "NHTC" },
+  { vaccine: "7-Way Clostridial", program: "IMI Global", certPrefix: "IMG" },
+  { vaccine: "Mannheimia Haemolytica", program: "NHTC", certPrefix: "NHTC" },
+  { vaccine: "Bovine Respiratory Syncytial Virus", program: "GlobalG.A.P.", certPrefix: "GGAP" },
+];
+
+function generateHealthRecordsForCow(cow: Cow, idx: number): CowHealthRecord[] {
+  const count = 1 + Math.floor(Math.random() * 3);
+  return VACCINE_PROGRAMS.slice(0, count).map((prog, pIdx) => ({
+    healthRecordId: idx * 10 + pIdx,
+    cowId: cow.cowId,
+    vaccineName: prog.vaccine,
+    administrationDate: dateAgo(30 + pIdx * 45 + Math.floor(Math.random() * 20)),
+    healthProgramName: prog.program,
+    certificationNumber: `${prog.certPrefix}-${idx.toString().padStart(4, "0")}-${pIdx}`,
+    verifiedFlag: cow.verified,
+  }));
+}
+
+export const COW_HEALTH_RECORDS: CowHealthRecord[] = COWS.flatMap(
+  (cow, idx) => generateHealthRecordsForCow(cow, idx)
+);
+
+// ── CowValuations ─────────────────────────────────────────────────────────────
+
+function generateValuationsForCow(cow: Cow, idx: number): CowValuation[] {
+  const count = 1 + Math.floor(Math.random() * 2);
+  return Array.from({ length: count }, (_, vIdx) => {
+    const geneticsScore = parseFloat((50 + Math.random() * 50).toFixed(2));
+    const healthScore = cow.verified
+      ? parseFloat((70 + Math.random() * 30).toFixed(2))
+      : parseFloat((30 + Math.random() * 40).toFixed(2));
+    const weightScore = parseFloat((40 + Math.random() * 60).toFixed(2));
+    const certScore = cow.verified
+      ? parseFloat((60 + Math.random() * 40).toFixed(2))
+      : parseFloat((20 + Math.random() * 30).toFixed(2));
+    const progress = count > 1 ? vIdx / (count - 1) : 1;
+    const totalValue = Math.round(cow.totalValue * (0.85 + progress * 0.15));
+    return {
+      valuationId: idx * 10 + vIdx,
+      cowId: cow.cowId,
+      valuationDate: daysAgo(30 * (count - vIdx)),
+      geneticsScore,
+      healthScore,
+      weightScore,
+      certificationScore: certScore,
+      totalValue,
+      valuationMethodVersion: "v1.2",
+    };
+  });
+}
+
+export const COW_VALUATIONS: CowValuation[] = COWS.flatMap(
+  (cow, idx) => generateValuationsForCow(cow, idx)
+);
+
+// ── Lifecycle Events ──────────────────────────────────────────────────────────
+
+export const LIFECYCLE_EVENTS: LifecycleEvent[] = [
+  // HERD-001 — Angus Prime Lot A (at FEEDLOT)
+  { id: "ev-001", poolId: "HERD-001", stage: "RANCH", verified: true, timestampIso: daysAgo(90), note: "32 Angus calves born & tagged at RCH-MT-01." },
+  { id: "ev-002", poolId: "HERD-001", stage: "AUCTION", verified: true, timestampIso: daysAgo(65), note: "Lot sold at Amarillo livestock auction." },
+  { id: "ev-003", poolId: "HERD-001", stage: "BACKGROUNDING", verified: true, timestampIso: daysAgo(50), note: "Entire lot entered stocker program for weight gain." },
+  { id: "ev-004", poolId: "HERD-001", stage: "FEEDLOT", verified: true, timestampIso: daysAgo(25), note: "Full lot transferred to feedlot for finishing." },
+  { id: "ev-005", poolId: "HERD-001", cowId: "COW-1-003", stage: "FEEDLOT", verified: true, timestampIso: daysAgo(2), note: "Weight check — 1,180 lb average, on target." },
+
+  // HERD-002 — Hereford Select Lot B (at RANCH)
+  { id: "ev-006", poolId: "HERD-002", stage: "RANCH", verified: true, timestampIso: daysAgo(40), note: "28 Hereford calves born — calving season complete." },
+  { id: "ev-007", poolId: "HERD-002", cowId: "COW-2-004", stage: "RANCH", verified: true, timestampIso: daysAgo(5), note: "Vaccination round completed. All 28 head clear." },
+
+  // HERD-003 — Wagyu Cross Lot C (at PROCESSING)
+  { id: "ev-008", poolId: "HERD-003", stage: "RANCH", verified: true, timestampIso: daysAgo(150), note: "45 Wagyu F1 cross calves selected from specialty ranch." },
+  { id: "ev-009", poolId: "HERD-003", stage: "AUCTION", verified: true, timestampIso: daysAgo(120), note: "Premium auction — top price per head." },
+  { id: "ev-010", poolId: "HERD-003", stage: "BACKGROUNDING", verified: true, timestampIso: daysAgo(100), note: "Special diet backgrounding program for full lot." },
+  { id: "ev-011", poolId: "HERD-003", stage: "FEEDLOT", verified: true, timestampIso: daysAgo(70), note: "Entered specialty feedlot — grain-finishing." },
+  { id: "ev-012", poolId: "HERD-003", stage: "PROCESSING", verified: true, timestampIso: daysAgo(10), note: "Processing started at certified USDA plant." },
+  { id: "ev-013", poolId: "HERD-003", cowId: "COW-3-012", stage: "PROCESSING", verified: true, timestampIso: daysAgo(1), note: "USDA grade: Prime — marbling excellent." },
+
+  // HERD-004 — Brahman Mix Lot D (at AUCTION)
+  { id: "ev-014", poolId: "HERD-004", stage: "RANCH", verified: true, timestampIso: daysAgo(60), note: "24 Brahman mix calves raised, grass-fed on pasture." },
+  { id: "ev-015", poolId: "HERD-004", stage: "AUCTION", verified: false, timestampIso: daysAgo(12), note: "Lot listed for auction — pending verification." },
+
+  // HERD-005 — Black Angus Lot E (at DISTRIBUTION)
+  { id: "ev-016", poolId: "HERD-005", stage: "RANCH", verified: true, timestampIso: daysAgo(180), note: "38 Black Angus raised on premium pasture." },
+  { id: "ev-017", poolId: "HERD-005", stage: "AUCTION", verified: true, timestampIso: daysAgo(150), note: "Lot sold to certified buyer." },
+  { id: "ev-018", poolId: "HERD-005", stage: "BACKGROUNDING", verified: true, timestampIso: daysAgo(125), note: "Backgrounding — weight gain program." },
+  { id: "ev-019", poolId: "HERD-005", stage: "FEEDLOT", verified: true, timestampIso: daysAgo(90), note: "Grain-finished program started." },
+  { id: "ev-020", poolId: "HERD-005", stage: "PROCESSING", verified: true, timestampIso: daysAgo(40), note: "USDA inspected processing." },
+  { id: "ev-021", poolId: "HERD-005", stage: "DISTRIBUTION", verified: true, timestampIso: daysAgo(8), note: "Full lot entered cold chain distribution." },
+  { id: "ev-022", poolId: "HERD-005", cowId: "COW-5-022", stage: "DISTRIBUTION", verified: true, timestampIso: daysAgo(1), note: "Shipment dispatched to DST-AZ-SW." },
+
+  // HERD-006 — Charolais Lot F (at FEEDLOT)
+  { id: "ev-023", poolId: "HERD-006", stage: "RANCH", verified: true, timestampIso: daysAgo(110), note: "35 Charolais calves selected and tagged." },
+  { id: "ev-024", poolId: "HERD-006", stage: "AUCTION", verified: true, timestampIso: daysAgo(85), note: "Auction completed — lot sold." },
+  { id: "ev-025", poolId: "HERD-006", stage: "BACKGROUNDING", verified: true, timestampIso: daysAgo(65), note: "Full lot entered stocker field intake." },
+  { id: "ev-026", poolId: "HERD-006", stage: "FEEDLOT", verified: true, timestampIso: daysAgo(35), note: "Feedlot finishing started — grain program." },
+  { id: "ev-027", poolId: "HERD-006", cowId: "COW-6-008", stage: "FEEDLOT", verified: false, timestampIso: daysAgo(2), note: "Health watch — mild respiratory, treated." },
+
+  // HERD-007 — Simmental Lot G (at RANCH)
+  { id: "ev-028", poolId: "HERD-007", stage: "RANCH", verified: true, timestampIso: daysAgo(30), note: "22 Simmental calves on pasture — 4 months to auction." },
+
+  // HERD-008 — Red Angus Premium Lot H (at PROCESSING)
+  { id: "ev-029", poolId: "HERD-008", stage: "RANCH", verified: true, timestampIso: daysAgo(140), note: "42 Red Angus premium stock selected." },
+  { id: "ev-030", poolId: "HERD-008", stage: "AUCTION", verified: true, timestampIso: daysAgo(115), note: "Sold at Iowa livestock exchange." },
+  { id: "ev-031", poolId: "HERD-008", stage: "BACKGROUNDING", verified: true, timestampIso: daysAgo(95), note: "Prairie backgrounding program — full lot." },
+  { id: "ev-032", poolId: "HERD-008", stage: "FEEDLOT", verified: true, timestampIso: daysAgo(65), note: "Entered Valley Feedlot — finishing program." },
+  { id: "ev-033", poolId: "HERD-008", stage: "PROCESSING", verified: true, timestampIso: daysAgo(10), note: "Processing started at certified plant." },
+];
+
+// ── Budget Breakdowns (per herd) ──────────────────────────────────────────────
 
 const BUDGET_DATA: Record<string, BudgetItem[]> = {
-  "POOL-001": [
-    { label: "Ranch & Acquisition", amountUsd: 72_000, category: "cost" },
-    { label: "Backgrounding", amountUsd: 18_000, category: "cost" },
-    { label: "Feed & Finishing", amountUsd: 68_000, category: "cost" },
-    { label: "Processing", amountUsd: 24_000, category: "cost" },
-    { label: "Logistics & Distribution", amountUsd: 16_000, category: "cost" },
+  "HERD-001": [
+    { label: "Cattle Acquisition", amountUsd: 72_000, category: "cost" },
+    { label: "Operating Costs", amountUsd: 126_000, category: "cost" },
     { label: "Expected Revenue", amountUsd: 276_000, category: "revenue" },
   ],
-  "POOL-002": [
-    { label: "Ranch & Acquisition", amountUsd: 56_000, category: "cost" },
-    { label: "Backgrounding", amountUsd: 14_000, category: "cost" },
-    { label: "Feed & Finishing", amountUsd: 38_000, category: "cost" },
-    { label: "Processing", amountUsd: 12_000, category: "cost" },
-    { label: "Logistics & Distribution", amountUsd: 8_000, category: "cost" },
+  "HERD-002": [
+    { label: "Cattle Acquisition", amountUsd: 56_000, category: "cost" },
+    { label: "Operating Costs", amountUsd: 72_000, category: "cost" },
     { label: "Expected Revenue", amountUsd: 172_000, category: "revenue" },
   ],
-  "POOL-003": [
-    { label: "Ranch & Acquisition", amountUsd: 165_000, category: "cost" },
-    { label: "Backgrounding", amountUsd: 35_000, category: "cost" },
-    { label: "Feed & Finishing", amountUsd: 120_000, category: "cost" },
-    { label: "Processing", amountUsd: 62_000, category: "cost" },
-    { label: "Logistics & Distribution", amountUsd: 38_000, category: "cost" },
+  "HERD-003": [
+    { label: "Cattle Acquisition", amountUsd: 165_000, category: "cost" },
+    { label: "Operating Costs", amountUsd: 255_000, category: "cost" },
     { label: "Expected Revenue", amountUsd: 580_000, category: "revenue" },
   ],
-  "POOL-004": [
-    { label: "Ranch & Acquisition", amountUsd: 36_000, category: "cost" },
-    { label: "Backgrounding", amountUsd: 10_000, category: "cost" },
-    { label: "Feed & Finishing", amountUsd: 24_000, category: "cost" },
-    { label: "Processing", amountUsd: 8_000, category: "cost" },
-    { label: "Logistics & Distribution", amountUsd: 6_000, category: "cost" },
-    { label: "Expected Revenue", amountUsd: 108_000, category: "revenue" },
+  "HERD-004": [
+    { label: "Cattle Acquisition", amountUsd: 48_000, category: "cost" },
+    { label: "Operating Costs", amountUsd: 96_000, category: "cost" },
+    { label: "Expected Revenue", amountUsd: 198_000, category: "revenue" },
   ],
-  "POOL-005": [
-    { label: "Ranch & Acquisition", amountUsd: 112_000, category: "cost" },
-    { label: "Backgrounding", amountUsd: 28_000, category: "cost" },
-    { label: "Feed & Finishing", amountUsd: 95_000, category: "cost" },
-    { label: "Processing", amountUsd: 48_000, category: "cost" },
-    { label: "Logistics & Distribution", amountUsd: 27_000, category: "cost" },
+  "HERD-005": [
+    { label: "Cattle Acquisition", amountUsd: 112_000, category: "cost" },
+    { label: "Operating Costs", amountUsd: 198_000, category: "cost" },
     { label: "Expected Revenue", amountUsd: 420_000, category: "revenue" },
   ],
-  "POOL-006": [
-    { label: "Ranch & Acquisition", amountUsd: 62_000, category: "cost" },
-    { label: "Backgrounding", amountUsd: 16_000, category: "cost" },
-    { label: "Feed & Finishing", amountUsd: 54_000, category: "cost" },
-    { label: "Processing", amountUsd: 20_000, category: "cost" },
-    { label: "Logistics & Distribution", amountUsd: 13_000, category: "cost" },
-    { label: "Expected Revenue", amountUsd: 218_000, category: "revenue" },
+  "HERD-006": [
+    { label: "Cattle Acquisition", amountUsd: 72_000, category: "cost" },
+    { label: "Operating Costs", amountUsd: 146_000, category: "cost" },
+    { label: "Expected Revenue", amountUsd: 292_000, category: "revenue" },
   ],
-  "POOL-007": [
-    { label: "Ranch & Acquisition", amountUsd: 28_000, category: "cost" },
-    { label: "Backgrounding", amountUsd: 6_000, category: "cost" },
-    { label: "Feed & Finishing", amountUsd: 16_000, category: "cost" },
-    { label: "Processing", amountUsd: 6_000, category: "cost" },
-    { label: "Logistics & Distribution", amountUsd: 4_000, category: "cost" },
-    { label: "Expected Revenue", amountUsd: 82_000, category: "revenue" },
+  "HERD-007": [
+    { label: "Cattle Acquisition", amountUsd: 46_000, category: "cost" },
+    { label: "Operating Costs", amountUsd: 70_000, category: "cost" },
+    { label: "Expected Revenue", amountUsd: 158_000, category: "revenue" },
   ],
-  "POOL-008": [
-    { label: "Ranch & Acquisition", amountUsd: 135_000, category: "cost" },
-    { label: "Backgrounding", amountUsd: 30_000, category: "cost" },
-    { label: "Feed & Finishing", amountUsd: 110_000, category: "cost" },
-    { label: "Processing", amountUsd: 55_000, category: "cost" },
-    { label: "Logistics & Distribution", amountUsd: 35_000, category: "cost" },
+  "HERD-008": [
+    { label: "Cattle Acquisition", amountUsd: 135_000, category: "cost" },
+    { label: "Operating Costs", amountUsd: 230_000, category: "cost" },
     { label: "Expected Revenue", amountUsd: 495_000, category: "revenue" },
-  ],
-  "IND-001": [
-    { label: "Acquisition (per head)", amountUsd: 28_000, category: "cost" },
-    { label: "Backgrounding", amountUsd: 8_000, category: "cost" },
-    { label: "Feed & Finishing", amountUsd: 20_000, category: "cost" },
-    { label: "Processing", amountUsd: 7_000, category: "cost" },
-    { label: "Logistics & Distribution", amountUsd: 5_000, category: "cost" },
-    { label: "Expected Revenue", amountUsd: 108_000, category: "revenue" },
-  ],
-  "IND-002": [
-    { label: "Acquisition (per head)", amountUsd: 18_000, category: "cost" },
-    { label: "Backgrounding", amountUsd: 5_000, category: "cost" },
-    { label: "Feed & Finishing", amountUsd: 12_000, category: "cost" },
-    { label: "Processing", amountUsd: 4_000, category: "cost" },
-    { label: "Logistics & Distribution", amountUsd: 3_000, category: "cost" },
-    { label: "Expected Revenue", amountUsd: 61_200, category: "revenue" },
-  ],
-  "IND-003": [
-    { label: "Acquisition (per head)", amountUsd: 12_000, category: "cost" },
-    { label: "Backgrounding", amountUsd: 3_500, category: "cost" },
-    { label: "Feed & Finishing", amountUsd: 7_000, category: "cost" },
-    { label: "Processing", amountUsd: 2_500, category: "cost" },
-    { label: "Logistics & Distribution", amountUsd: 2_000, category: "cost" },
-    { label: "Expected Revenue", amountUsd: 42_000, category: "revenue" },
   ],
 };
 
-// ── Documents (per pool) ─────────────────────────────────────────────────────
+// ── Documents (per herd) ──────────────────────────────────────────────────────
 
 const HERD_DOCUMENTS: Document[] = [
   { title: "Certificate of Origin", type: "certificate", url: "#" },
@@ -528,24 +635,15 @@ const HERD_DOCUMENTS: Document[] = [
   { title: "Livestock Insurance Policy", type: "insurance", url: "#" },
 ];
 
-const INDIVIDUAL_DOCUMENTS: Document[] = [
-  { title: "Individual Bill of Sale", type: "transfer", url: "#" },
-  { title: "Veterinary Health Certificate", type: "inspection", url: "#" },
-  { title: "Breed Registration Papers", type: "certificate", url: "#" },
-  { title: "USDA Grade Certificate", type: "grade", url: "#" },
-];
-
 export function getPoolDocuments(pool: Pool): Document[] {
-  const docs = pool.poolType === "individual" ? INDIVIDUAL_DOCUMENTS : HERD_DOCUMENTS;
-  // Vary count per pool so it doesn't look uniform
-  const count = 3 + (parseInt(pool.id.replace(/\D/g, "")) % 3);
-  return docs.slice(0, Math.min(count, docs.length));
+  const count = 3 + (parseInt(pool.herdId.replace(/\D/g, "")) % 3);
+  return HERD_DOCUMENTS.slice(0, Math.min(count, HERD_DOCUMENTS.length));
 }
 
-// ── Builders ─────────────────────────────────────────────────────────────────
+// ── Builders ──────────────────────────────────────────────────────────────────
 
-export function buildPoolBudget(poolId: string): BudgetItem[] {
-  return BUDGET_DATA[poolId] ?? BUDGET_DATA["POOL-001"];
+export function buildPoolBudget(herdId: string): BudgetItem[] {
+  return BUDGET_DATA[herdId] ?? BUDGET_DATA["HERD-001"];
 }
 
 export function buildPoolHistory(pool: Pool): SeriesPoint[] {
@@ -566,13 +664,35 @@ export function getRecentEvents(count: number): LifecycleEvent[] {
     .slice(0, count);
 }
 
-export function getPoolEvents(poolId: string): LifecycleEvent[] {
-  return LIFECYCLE_EVENTS.filter((e) => e.poolId === poolId).sort(
+export function getPoolEvents(herdId: string): LifecycleEvent[] {
+  return LIFECYCLE_EVENTS.filter((e) => e.poolId === herdId).sort(
     (a, b) =>
       new Date(a.timestampIso).getTime() - new Date(b.timestampIso).getTime(),
   );
 }
 
-export function getPoolCows(poolId: string): Cow[] {
-  return COWS.filter((c) => c.poolId === poolId);
+export function getPoolCows(herdId: string): Cow[] {
+  return COWS.filter((c) => c.herdId === herdId);
+}
+
+export function getCowWeights(cowId: string): CowWeight[] {
+  return COW_WEIGHTS.filter((w) => w.cowId === cowId).sort(
+    (a, b) => new Date(a.weightDate).getTime() - new Date(b.weightDate).getTime()
+  );
+}
+
+export function getCowEPDs(cowId: string): CowEPD[] {
+  return COW_EPDS.filter((e) => e.cowId === cowId);
+}
+
+export function getCowHealthRecords(cowId: string): CowHealthRecord[] {
+  return COW_HEALTH_RECORDS.filter((h) => h.cowId === cowId).sort(
+    (a, b) => new Date(b.administrationDate).getTime() - new Date(a.administrationDate).getTime()
+  );
+}
+
+export function getCowValuations(cowId: string): CowValuation[] {
+  return COW_VALUATIONS.filter((v) => v.cowId === cowId).sort(
+    (a, b) => new Date(a.valuationDate).getTime() - new Date(b.valuationDate).getTime()
+  );
 }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, Trash2 } from "lucide-react";
 import {
   Table,
   TableHeader,
@@ -9,22 +9,26 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { StageBadge } from "@/components/common/StageBadge";
 import { VerifiedBadge } from "@/components/common/VerifiedBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn, formatUsd, formatDate, formatWeight } from "@/lib/utils";
-import type { Cow, CowHealth } from "@/lib/types";
+import type { Cow, CowHealth, SexCode } from "@/lib/types";
+import { SEX_LABELS } from "@/lib/types";
 
 type CowSortKey =
-  | "tokenId"
   | "cowId"
+  | "registrationNumber"
   | "stage"
-  | "weightLb"
+  | "breedCode"
+  | "sexCode"
+  | "weightLbs"
   | "health"
   | "daysInStage"
   | "costToDateUsd"
-  | "projectedExitUsd"
-  | "updatedIso";
+  | "totalValue"
+  | "createdAt";
 
 const HEALTH_STYLES: Record<CowHealth, string> = {
   "On Track": "bg-green-100 text-green-800 border-green-200",
@@ -32,12 +36,20 @@ const HEALTH_STYLES: Record<CowHealth, string> = {
   Issue: "bg-red-100 text-red-800 border-red-200",
 };
 
+const SEX_STYLES: Record<SexCode, string> = {
+  S: "bg-blue-50 text-blue-700 border-blue-200",
+  H: "bg-pink-50 text-pink-700 border-pink-200",
+  B: "bg-orange-50 text-orange-700 border-orange-200",
+  C: "bg-gray-50 text-gray-600 border-gray-200",
+};
+
 interface CowsTableProps {
   cows: Cow[];
+  onRemove?: (cowId: string) => void;
 }
 
-export function CowsTable({ cows }: CowsTableProps) {
-  const [sortKey, setSortKey] = useState<CowSortKey>("tokenId");
+export function CowsTable({ cows, onRemove }: CowsTableProps) {
+  const [sortKey, setSortKey] = useState<CowSortKey>("cowId");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   function handleSort(key: CowSortKey) {
@@ -52,26 +64,30 @@ export function CowsTable({ cows }: CowsTableProps) {
   const sorted = [...cows].sort((a, b) => {
     const dir = sortDir === "asc" ? 1 : -1;
     switch (sortKey) {
-      case "tokenId":
-        return dir * (a.tokenId - b.tokenId);
       case "cowId":
         return dir * a.cowId.localeCompare(b.cowId);
+      case "registrationNumber":
+        return dir * a.registrationNumber.localeCompare(b.registrationNumber);
       case "stage":
         return dir * a.stage.localeCompare(b.stage);
-      case "weightLb":
-        return dir * (a.weightLb - b.weightLb);
+      case "breedCode":
+        return dir * a.breedCode.localeCompare(b.breedCode);
+      case "sexCode":
+        return dir * a.sexCode.localeCompare(b.sexCode);
+      case "weightLbs":
+        return dir * (a.weightLbs - b.weightLbs);
       case "health":
         return dir * a.health.localeCompare(b.health);
       case "daysInStage":
         return dir * (a.daysInStage - b.daysInStage);
       case "costToDateUsd":
         return dir * (a.costToDateUsd - b.costToDateUsd);
-      case "projectedExitUsd":
-        return dir * (a.projectedExitUsd - b.projectedExitUsd);
-      case "updatedIso":
+      case "totalValue":
+        return dir * (a.totalValue - b.totalValue);
+      case "createdAt":
         return (
           dir *
-          (new Date(a.updatedIso).getTime() - new Date(b.updatedIso).getTime())
+          (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
         );
       default:
         return 0;
@@ -104,17 +120,22 @@ export function CowsTable({ cows }: CowsTableProps) {
       <TableHeader>
         <TableRow>
           <TableHead>
-            <SortHeader label="Token" field="tokenId" />
+            <SortHeader label="Cattle ID" field="cowId" />
           </TableHead>
           <TableHead>
-            <SortHeader label="Cow ID" field="cowId" />
+            <SortHeader label="Reg. #" field="registrationNumber" />
           </TableHead>
           <TableHead>
             <SortHeader label="Stage" field="stage" />
           </TableHead>
-          <TableHead>Facility</TableHead>
           <TableHead>
-            <SortHeader label="Weight" field="weightLb" />
+            <SortHeader label="Breed" field="breedCode" />
+          </TableHead>
+          <TableHead>
+            <SortHeader label="Sex" field="sexCode" />
+          </TableHead>
+          <TableHead>
+            <SortHeader label="Weight" field="weightLbs" />
           </TableHead>
           <TableHead>
             <SortHeader label="Health" field="health" />
@@ -123,33 +144,42 @@ export function CowsTable({ cows }: CowsTableProps) {
             <SortHeader label="Days" field="daysInStage" />
           </TableHead>
           <TableHead>
-            <SortHeader label="Cost-to-date" field="costToDateUsd" />
+            <SortHeader label="Investment to Date" field="costToDateUsd" />
           </TableHead>
           <TableHead>
-            <SortHeader label="Projected Exit" field="projectedExitUsd" />
+            <SortHeader label="Total Value" field="totalValue" />
           </TableHead>
           <TableHead>
-            <SortHeader label="Updated" field="updatedIso" />
+            <SortHeader label="Enrolled" field="createdAt" />
           </TableHead>
+          {onRemove && <TableHead />}
         </TableRow>
       </TableHeader>
       <TableBody>
         {sorted.map((cow) => (
           <TableRow key={cow.cowId}>
-            <TableCell className="font-mono text-xs">{cow.tokenId}</TableCell>
             <TableCell>
               <div className="flex items-center gap-1.5">
-                <span className="text-sm font-medium">{cow.cowId}</span>
+                <span className="font-mono text-xs font-medium">{cow.cowId}</span>
                 <VerifiedBadge verified={cow.verified} />
               </div>
+            </TableCell>
+            <TableCell className="font-mono text-xs text-muted-foreground">
+              {cow.registrationNumber}
             </TableCell>
             <TableCell>
               <StageBadge stage={cow.stage} />
             </TableCell>
-            <TableCell className="max-w-[160px] truncate text-xs text-muted-foreground">
-              {cow.ranchOrFacility}
+            <TableCell className="text-sm">{cow.breedCode}</TableCell>
+            <TableCell>
+              <Badge
+                variant="outline"
+                className={cn("text-xs", SEX_STYLES[cow.sexCode])}
+              >
+                {SEX_LABELS[cow.sexCode]}
+              </Badge>
             </TableCell>
-            <TableCell className="text-sm">{formatWeight(cow.weightLb)}</TableCell>
+            <TableCell className="text-sm">{formatWeight(cow.weightLbs)}</TableCell>
             <TableCell>
               <Badge variant="outline" className={HEALTH_STYLES[cow.health]}>
                 {cow.health}
@@ -160,11 +190,24 @@ export function CowsTable({ cows }: CowsTableProps) {
               {formatUsd(cow.costToDateUsd)}
             </TableCell>
             <TableCell className="text-sm font-medium">
-              {formatUsd(cow.projectedExitUsd)}
+              {formatUsd(cow.totalValue)}
             </TableCell>
             <TableCell className="text-xs text-muted-foreground">
-              {formatDate(cow.updatedIso)}
+              {formatDate(cow.createdAt)}
             </TableCell>
+            {onRemove && (
+              <TableCell>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                  onClick={() => onRemove(cow.cowId)}
+                  title="Remove from lot"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </TableCell>
+            )}
           </TableRow>
         ))}
       </TableBody>
