@@ -6,6 +6,8 @@ import poolsRoutes from "./routes/pools.js";
 import portfolioRoutes from "./routes/portfolio.js";
 import usersRoutes from "./routes/users.js";
 import authRoutes from "./routes/auth.js";
+import herdsRoutes from "./routes/herds.js";
+import transactionsRoutes from "./routes/transactions.js";
 
 dotenv.config();
 
@@ -18,6 +20,8 @@ app.use("/api/pools", poolsRoutes);
 app.use("/api/portfolio", portfolioRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/herds", herdsRoutes);
+app.use("/api/transactions", transactionsRoutes);
 
 app.get("/api/health", async (req, res) => {
   const result = await pool.query("SELECT NOW()");

@@ -131,18 +131,84 @@ async function findPoolOrHerd(poolId) {
   return result.rows[0] ?? null;
 }
 
+function parseVerifiedFilter(value) {
+  if (!value) return null;
+  const normalized = String(value).toLowerCase();
+  if (["true", "1", "verified"].includes(normalized)) return true;
+  if (["false", "0", "unverified"].includes(normalized)) return false;
+  return null;
+}
+
+function parsePositiveInt(value, fallback, max = 100) {
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed) || parsed <= 0) return fallback;
+  return Math.min(parsed, max);
+}
+
 export async function getPools(req, res) {
+  const {
+    search,
+    stage,
+    verified,
+    sortBy = "createdAt",
+    sortDir = "desc",
+    limit,
+    offset,
+  } = req.query;
+
+  const verifiedFilter = parseVerifiedFilter(verified);
+  const limitValue = parsePositiveInt(limit, 100, 500);
+  const offsetValue = Math.max(Number.parseInt(offset, 10) || 0, 0);
+  const stageFilter =
+    stage && String(stage).toUpperCase() !== "ALL"
+      ? String(stage).toUpperCase()
+      : null;
+
+  const sortByMap = {
+    herdName: "h.herd_name",
+    headCount: "h.head_count",
+    listingPrice: "h.listing_price",
+    positionValueUsd: "h.listing_price",
+    netExpectedUsd: "(h.listing_price * 0.18)",
+    lastUpdate: "h.last_updated",
+    createdAt: "h.created_at",
+  };
+  const sortColumn = sortByMap[sortBy] || sortByMap.createdAt;
+  const sortDirection = String(sortDir).toLowerCase() === "asc" ? "ASC" : "DESC";
+
   try {
-    const result = await pool.query(`
+    const result = await pool.query(
+      `
       SELECT
         h.*,
         tp.pool_id,
         tp.total_supply,
-        tp.contract_address
+        tp.contract_address,
+        CASE
+          WHEN LOWER(COALESCE(h.purchase_status, '')) = 'available' THEN 'RANCH'
+          WHEN LOWER(COALESCE(h.purchase_status, '')) = 'pending' THEN 'PROCESSING'
+          WHEN LOWER(COALESCE(h.purchase_status, '')) = 'sold' THEN 'DISTRIBUTION'
+          ELSE 'FEEDLOT'
+        END AS dominant_stage
       FROM herds h
       LEFT JOIN token_pools tp ON tp.herd_id = h.herd_id
-      ORDER BY h.created_at DESC
-    `);
+      WHERE
+        ($1::text IS NULL OR h.herd_name ILIKE '%' || $1 || '%' OR CAST(h.herd_id AS text) ILIKE '%' || $1 || '%')
+        AND (
+          $2::text IS NULL OR
+          CASE
+            WHEN LOWER(COALESCE(h.purchase_status, '')) = 'available' THEN 'RANCH'
+            WHEN LOWER(COALESCE(h.purchase_status, '')) = 'pending' THEN 'PROCESSING'
+            WHEN LOWER(COALESCE(h.purchase_status, '')) = 'sold' THEN 'DISTRIBUTION'
+            ELSE 'FEEDLOT'
+          END = $2
+        )
+        AND ($3::boolean IS NULL OR h.verified_flag = $3)
+      ORDER BY ${sortColumn} ${sortDirection}
+      LIMIT $4 OFFSET $5
+      `,
+      [search ?? null, stageFilter, verifiedFilter, limitValue, offsetValue],
+    );
 
     return res.status(200).json(result.rows);
   } catch (error) {
