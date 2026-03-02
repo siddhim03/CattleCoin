@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How We Value Cattle — CattleCoin</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0e;
+    --surface: #111418;
+    --surface2: #181d23;
+    --border: #252d38;
+    --border-bright: #2e3a47;
+    --text: #e8edf2;
+    --text-dim: #6b7f91;
+    --text-muted: #3d5166;
+    --amber: #f5a623;
+    --amber-dim: #a87218;
+    --amber-glow: rgba(245,166,35,0.12);
+    --teal: #2dd4bf;
+    --teal-dim: #1a8a7a;
+    --teal-glow: rgba(45,212,191,0.10);
+    --rose: #fb7185;
+    --violet: #a78bfa;
+    --violet-glow: rgba(167,139,250,0.10);
+    --sky: #38bdf8;
+    --sky-glow: rgba(56,189,248,0.10);
+    --green: #4ade80;
+    --green-dim: #166534;
+    --green-glow: rgba(74,222,128,0.10);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(37,45,56,0.45) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(37,45,56,0.45) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100vh;
+    display: grid;
+    grid-template-rows: auto auto 1fr auto auto;
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 14px 24px 10px;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 10px;
+  }
+
+  .header-left h1 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .header-left h1 span { color: var(--amber); }
+
+  .header-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+
+  .header-sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-weight: 300;
+    margin-top: 2px;
+  }
+
+  /* ── STEP ROW LABEL ── */
+  .step-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .step-chip {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    font-weight: 600;
+    color: var(--amber);
+    background: var(--amber-glow);
+    border: 1px solid var(--amber-dim);
+    border-radius: 3px;
+    padding: 2px 6px;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+
+  .step-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .step-line { flex: 1; height: 1px; background: var(--border); }
+
+  /* ── FOUR FACTOR CARDS ── */
+  .factors-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  .factor-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 10px 12px 10px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .factor-card.genetics { border-top: 2px solid var(--amber); }
+  .factor-card.health   { border-top: 2px solid var(--teal); }
+  .factor-card.weight   { border-top: 2px solid var(--sky); }
+  .factor-card.certs    { border-top: 2px solid var(--violet); }
+
+  .fc-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 5px;
+  }
+
+  .fc-name {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .genetics .fc-name { color: var(--amber); }
+  .health   .fc-name { color: var(--teal); }
+  .weight   .fc-name { color: var(--sky); }
+  .certs    .fc-name { color: var(--violet); }
+
+  .fc-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  .genetics .fc-badge { color: var(--amber);  background: var(--amber-glow);  border: 1px solid var(--amber-dim); }
+  .health   .fc-badge { color: var(--teal);   background: var(--teal-glow);   border: 1px solid var(--teal-dim); }
+  .weight   .fc-badge { color: var(--sky);    background: var(--sky-glow);    border: 1px solid #1e5a7a; }
+  .certs    .fc-badge { color: var(--violet); background: var(--violet-glow); border: 1px solid #5b3fa0; }
+
+  .fc-desc {
+    font-size: 10px;
+    color: var(--text-dim);
+    font-weight: 300;
+    line-height: 1.5;
+    margin-bottom: 7px;
+  }
+
+  .fc-divider { height: 1px; background: var(--border); margin-bottom: 6px; }
+
+  .fc-details { display: flex; flex-direction: column; gap: 3px; }
+
+  .fc-row {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    font-size: 9.5px;
+  }
+
+  .fc-dot {
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .genetics .fc-dot { background: var(--amber); }
+  .health   .fc-dot { background: var(--teal); }
+  .weight   .fc-dot { background: var(--sky); }
+  .certs    .fc-dot { background: var(--violet); }
+
+  .fc-lbl { color: var(--text-dim); flex-shrink: 0; }
+  .fc-val { color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 8.5px; }
+
+  /* ── CONNECTOR ── */
+  .connector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 3px 0;
+  }
+
+  .conn-line { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--border-bright), transparent); }
+  .conn-arrow { color: var(--text-muted); font-size: 12px; }
+  .conn-text { font-family: 'IBM Plex Mono', monospace; font-size: 8px; color: var(--text-muted); letter-spacing: 0.1em; }
+
+  /* ── BOTTOM SECTION: grades + formula + output ── */
+  .bottom-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 10px;
+  }
+
+  /* GRADE CARD */
+  .grade-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .gc-title { font-size: 11px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .gc-sub   { font-size: 9.5px; color: var(--text-dim); font-weight: 300; line-height: 1.4; margin-bottom: 8px; }
+
+  .grade-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    height: 64px;
+    margin-bottom: 6px;
+    padding: 0 8px;
+  }
+
+  .gb-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; height: 100%; justify-content: flex-end; }
+
+  .gb-pct { font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600; }
+  .gb-pct.prime  { color: var(--amber); }
+  .gb-pct.choice { color: var(--teal); }
+  .gb-pct.select { color: var(--rose); }
+
+  .gb-bar { width: 100%; border-radius: 3px 3px 0 0; }
+  .gb-bar.prime  { height: 22%; background: linear-gradient(180deg, #f5a623, #a87218); }
+  .gb-bar.choice { height: 83%; background: linear-gradient(180deg, #2dd4bf, #1a8a7a); }
+  .gb-bar.select { height: 4%;  background: rgba(251,113,133,0.35); }
+
+  .gb-name { font-family: 'IBM Plex Mono', monospace; font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; text-align: center; }
+  .gb-name.prime  { color: var(--amber); }
+  .gb-name.choice { color: var(--teal); }
+  .gb-name.select { color: var(--rose); }
+
+  .grade-prices {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border);
+  }
+
+  .gp-item { text-align: center; }
+  .gp-tag  { font-family: 'IBM Plex Mono', monospace; font-size: 7.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 1px; }
+  .gp-val  { font-size: 13px; font-weight: 700; }
+  .gp-val.prime   { color: var(--amber); }
+  .gp-val.choice  { color: var(--teal); }
+  .gp-val.select  { color: var(--rose); }
+  .gp-val.blended { color: var(--text); }
+
+  /* FORMULA + OUTPUT stacked on right */
+  .right-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .formula-card {
+    background: var(--surface2);
+    border: 1px solid var(--border-bright);
+    border-radius: 7px;
+    padding: 10px 14px;
+    flex: 1;
+  }
+
+  .formula-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8.5px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 8px;
+  }
+
+  .formula-terms {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .f-term {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    font-weight: 600;
+    border: 1px solid;
+    letter-spacing: -0.01em;
+  }
+
+  .f-term.sky    { color: var(--sky);    background: var(--sky-glow);    border-color: #1e5a7a; }
+  .f-term.amber  { color: var(--amber);  background: var(--amber-glow);  border-color: var(--amber-dim); }
+  .f-term.teal   { color: var(--teal);   background: var(--teal-glow);   border-color: var(--teal-dim); }
+  .f-term.violet { color: var(--violet); background: var(--violet-glow); border-color: #5b3fa0; }
+  .f-term.green  { color: var(--green);  background: var(--green-glow);  border-color: var(--green-dim); }
+
+  .f-op { color: var(--text-muted); font-size: 14px; }
+
+  .formula-divider { height: 1px; background: var(--border); margin: 6px 0; }
+
+  .formula-explain {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .fe-item {}
+  .fe-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+  }
+
+  .fe-text {
+    font-size: 9.5px;
+    color: var(--text-dim);
+    font-weight: 300;
+    line-height: 1.45;
+  }
+
+  /* OUTPUT CARD */
+  .output-card {
+    background: linear-gradient(135deg, rgba(245,166,35,0.1), rgba(45,212,191,0.05));
+    border: 1px solid var(--amber-dim);
+    border-radius: 7px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .oc-left .oc-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 2px;
+  }
+
+  .oc-left h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 2px;
+    letter-spacing: -0.02em;
+  }
+
+  .oc-left p {
+    font-size: 9.5px;
+    color: var(--text-dim);
+    font-weight: 300;
+    line-height: 1.5;
+    max-width: 480px;
+  }
+
+  .oc-metrics { display: flex; gap: 8px; }
+
+  .oc-metric {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border-bright);
+    border-radius: 5px;
+    padding: 6px 12px;
+    text-align: center;
+    min-width: 90px;
+  }
+
+  .oc-metric-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7.5px;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  .oc-metric-val {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--amber);
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: -0.02em;
+  }
+
+  /* footer */
+  .footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    margin-top: 6px;
+  }
+
+  .footer-line { flex: 1; height: 1px; background: var(--border); }
+
+  .footer-text {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+
+  /* scores row (compact, inline within step bar) */
+  .scores-inline {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .score-pill {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 5px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .score-pill:nth-child(1) { border-left: 3px solid var(--amber); }
+  .score-pill:nth-child(2) { border-left: 3px solid var(--teal); }
+  .score-pill:nth-child(3) { border-left: 3px solid var(--sky); }
+  .score-pill:nth-child(4) { border-left: 3px solid var(--violet); }
+
+  .sp-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .sp-val { font-size: 18px; font-weight: 700; letter-spacing: -0.03em; }
+  .score-pill:nth-child(1) .sp-val { color: var(--amber); }
+  .score-pill:nth-child(2) .sp-val { color: var(--teal); }
+  .score-pill:nth-child(3) .sp-val { color: var(--sky); }
+  .score-pill:nth-child(4) .sp-val { color: var(--violet); }
+
+  .sp-max { font-size: 9px; color: var(--text-muted); font-family: 'IBM Plex Mono', monospace; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <div class="header-eyebrow">CattleCoin Platform · Valuation Model v2.0</div>
+      <h1>How We <span>Value</span> Every Animal</h1>
+      <div class="header-sub">Four scored inputs → grade-adjusted price → discounted to today's fair value</div>
+    </div>
+  </div>
+
+  <!-- STEP 01 FACTORS -->
+  <div>
+    <div class="step-bar">
+      <span class="step-chip">01</span>
+      <span class="step-title">Four inputs drive the valuation</span>
+      <div class="step-line"></div>
+    </div>
+    <div class="factors-row">
+
+      <div class="factor-card genetics">
+        <div class="fc-top">
+          <span class="fc-name">🧬 Genetics Score</span>
+          <span class="fc-badge">0–100 pts</span>
+        </div>
+        <div class="fc-desc">A cow's DNA determines what grade of meat it will produce. EPD scores are industry-standard genetic predictions derived from lineage and performance data across multiple generations.</div>
+        <div class="fc-divider"></div>
+        <div class="fc-details">
+          <div class="fc-row"><div class="fc-dot"></div><span class="fc-lbl">Key metric:</span><span class="fc-val">MARB EPD percentile rank</span></div>
+          <div class="fc-row"><div class="fc-dot"></div><span class="fc-lbl">Genomic bonus:</span><span class="fc-val">+6 pts for DNA-verified animals</span></div>
+          <div class="fc-row"><div class="fc-dot"></div><span class="fc-lbl">Platform floor:</span><span class="fc-val">≥10% Prime expected, always</span></div>
+          <div class="fc-row"><div class="fc-dot"></div><span class="fc-lbl">Drives:</span><span class="fc-val">Prime vs Choice grade prediction</span></div>
+        </div>
+      </div>
+
+      <div class="factor-card health">
+        <div class="fc-top">
+          <span class="fc-name">💉 Health Score</span>
+          <span class="fc-badge">0–100 pts</span>
+        </div>
+        <div class="fc-desc">A poorly managed animal loses weight, grades lower, and gets discounted at the packing house. Vaccinations, treatment history and certified health program enrollment are all measured here.</div>
+        <div class="fc-divider"></div>
+        <div class="fc-details">
+          <div class="fc-row"><div class="fc-dot"></div><span class="fc-lbl">Verified herd center:</span><span class="fc-val">~92 / 100</span></div>
+          <div class="fc-row"><div class="fc-dot"></div><span class="fc-lbl">Unverified center:</span><span class="fc-val">~80 / 100</span></div>
+          <div class="fc-row"><div class="fc-dot"></div><span class="fc-lbl">Programs tracked:</span><span class="fc-val">NHTC, IMI Global, BQA</span></div>
+          <div class="fc-row"><div class="fc-dot"></div><span class="fc-lbl">Records stored:</span><span class="fc-val">Full vaccination history per animal</span></div>
+        </div>
+      </div>
+
+      <div class="factor-card weight">
+        <div class="fc-top">
+          <span class="fc-name">⚖️ Weight Score</span>
+          <span class="fc-badge">0–100 pts</span>
+        </div>
+        <div class="fc-desc">At each lifecycle stage there is an expected weight range per breed. An animal ahead of schedule is worth more today. Behind schedule may signal a feed or health concern worth flagging.</div>
+        <div class="fc-divider"></div>
+        <div class="fc-details">
+          <div class="fc-row"><div class="fc-dot"></div><span class="fc-lbl">On-track baseline:</span><span class="fc-val">~65 / 100</span></div>
+          <div class="fc-row"><div class="fc-dot"></div><span class="fc-lbl">Ahead of schedule:</span><span class="fc-val">Up to 95 / 100</span></div>
+          <div class="fc-row"><div class="fc-dot"></div><span class="fc-lbl">Behind schedule:</span><span class="fc-val">Can fall to 55 / 100</span></div>
+          <div class="fc-row"><div class="fc-dot"></div><span class="fc-lbl">Stages:</span><span class="fc-val">Ranch → BG → Feedlot → Processing</span></div>
+        </div>
+      </div>
+
+      <div class="factor-card certs">
+        <div class="fc-top">
+          <span class="fc-name">🏅 Certifications</span>
+          <span class="fc-badge">0–100 pts</span>
+        </div>
+        <div class="fc-desc">Value-add programs let beef carry premium labels — "Never-Ever Antibiotic Free," "Verified Natural," "GAP Certified." Grocers and food service pay measurably more and those premiums flow into the valuation.</div>
+        <div class="fc-divider"></div>
+        <div class="fc-details">
+          <div class="fc-row"><div class="fc-dot"></div><span class="fc-lbl">Each program adds:</span><span class="fc-val">+18 pts toward score</span></div>
+          <div class="fc-row"><div class="fc-dot"></div><span class="fc-lbl">Score cap:</span><span class="fc-val">100 pts maximum</span></div>
+          <div class="fc-row"><div class="fc-dot"></div><span class="fc-lbl">Examples:</span><span class="fc-val">NHTC, GAP, Verified Natural</span></div>
+          <div class="fc-row"><div class="fc-dot"></div><span class="fc-lbl">Uplift:</span><span class="fc-val">Up to +20% quality multiplier</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- STEP 02 SCORES -->
+  <div>
+    <div class="step-bar" style="margin-top:4px;">
+      <span class="step-chip">02</span>
+      <span class="step-title">Each factor becomes a score 0–100</span>
+      <div class="step-line"></div>
+    </div>
+    <div class="scores-inline">
+      <div class="score-pill"><span class="sp-tag">Genetics</span><div><span class="sp-val">82</span><span class="sp-max"> /100</span></div></div>
+      <div class="score-pill"><span class="sp-tag">Health</span><div><span class="sp-val">92</span><span class="sp-max"> /100</span></div></div>
+      <div class="score-pill"><span class="sp-tag">Weight</span><div><span class="sp-val">71</span><span class="sp-max"> /100</span></div></div>
+      <div class="score-pill"><span class="sp-tag">Certifications</span><div><span class="sp-val">54</span><span class="sp-max"> /100</span></div></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM: GRADE + FORMULA + OUTPUT -->
+  <div>
+    <div class="step-bar">
+      <span class="step-chip">03</span>
+      <span class="step-title">Grade distribution</span>
+      <div class="step-line" style="max-width:20px;"></div>
+      <span class="step-chip">04</span>
+      <span class="step-title">Formula</span>
+      <div class="step-line" style="max-width:20px;"></div>
+      <span class="step-chip">05</span>
+      <span class="step-title">Output</span>
+      <div class="step-line"></div>
+    </div>
+
+    <div class="bottom-grid">
+
+      <!-- GRADE CARD -->
+      <div class="grade-card">
+        <div class="gc-title">USDA Grade Prediction</div>
+        <div class="gc-sub">High-genetics herds skew heavily to Choice &amp; Prime. Select is near zero on this platform — only tokenization-worthy herds are listed.</div>
+        <div class="grade-bars">
+          <div class="gb-wrap">
+            <span class="gb-pct prime">15%</span>
+            <div class="gb-bar prime"></div>
+            <span class="gb-name prime">Prime</span>
+          </div>
+          <div class="gb-wrap">
+            <span class="gb-pct choice">83%</span>
+            <div class="gb-bar choice"></div>
+            <span class="gb-name choice">Choice</span>
+          </div>
+          <div class="gb-wrap">
+            <span class="gb-pct select">2%</span>
+            <div class="gb-bar select"></div>
+            <span class="gb-name select">Select</span>
+          </div>
+        </div>
+        <div class="grade-prices">
+          <div class="gp-item"><div class="gp-tag">Prime/cwt</div><div class="gp-val prime">$230</div></div>
+          <div class="gp-item"><div class="gp-tag">Choice/cwt</div><div class="gp-val choice">$205</div></div>
+          <div class="gp-item"><div class="gp-tag">Select/cwt</div><div class="gp-val select">$190</div></div>
+          <div class="gp-item"><div class="gp-tag">Blended</div><div class="gp-val blended">~$207</div></div>
+        </div>
+      </div>
+
+      <!-- FORMULA + OUTPUT -->
+      <div class="right-col">
+
+        <div class="formula-card">
+          <div class="formula-eyebrow">The Valuation Formula</div>
+          <div class="formula-terms">
+            <span class="f-term sky">Harvest Weight</span>
+            <span class="f-op">×</span>
+            <span class="f-term amber">Grade-Adjusted Price</span>
+            <span class="f-op">×</span>
+            <span class="f-term teal">Stage Completion %</span>
+            <span class="f-op">×</span>
+            <span class="f-term violet">Quality Multiplier</span>
+            <span class="f-op" style="font-size:11px; color:var(--text-muted);">  ÷ </span>
+            <span class="f-term green">(1 + 0.10) ^ years to harvest</span>
+            <span class="f-op" style="font-size:11px;">→ <span style="color:var(--text-dim); font-size:10px;">today's $</span></span>
+          </div>
+          <div class="formula-divider"></div>
+          <div class="formula-explain">
+            <div class="fe-item">
+              <div class="fe-label" style="color:#38bdf8;">Harvest Weight</div>
+              <div class="fe-text">Expected live weight at slaughter for this breed, used as the revenue base.</div>
+            </div>
+            <div class="fe-item">
+              <div class="fe-label" style="color:var(--amber);">Grade-Adj. Price</div>
+              <div class="fe-text">Blended $/lb from predicted % Prime, Choice, Select. Calibrated to USDA live market March 2026.</div>
+            </div>
+            <div class="fe-item">
+              <div class="fe-label" style="color:var(--teal);">Stage Completion</div>
+              <div class="fe-text">Fraction of final value already realized. Ranch=35%, Backgrounding=55%, Feedlot=90%, Processing=100%.</div>
+            </div>
+            <div class="fe-item">
+              <div class="fe-label" style="color:var(--violet);">Quality Multiplier</div>
+              <div class="fe-text">0.8×–1.6× driven by genetics score and certifications. Rewards elite genetics and premium programs.</div>
+            </div>
+          </div>
+          <div style="margin-top:6px; padding-top:6px; border-top:1px solid var(--border);">
+            <span style="font-family:'IBM Plex Mono',monospace; font-size:7.5px; letter-spacing:0.12em; text-transform:uppercase; color:var(--green); margin-right:6px;">÷ Discount Rate</span>
+            <span style="font-size:9.5px; color:var(--text-dim); font-weight:300;">A dollar received in 9 months is worth less than one today. At 10%/yr, $1,000 due in 9 months is worth ~$931 now — this converts future harvest value to today's fair price for the investor.</span>
+          </div>
+        </div>
+
+        <div class="output-card">
+          <div class="oc-left">
+            <div class="oc-eyebrow">Final Output</div>
+            <h3>Discounted Cow Value</h3>
+            <p>Every animal gets a fair-market value in today's dollars. Listing price is set 10% below that fair value — giving investors built-in upside from day one. Values update at every stage as new weight, health and EPD data arrives.</p>
+          </div>
+          <div class="oc-metrics">
+            <div class="oc-metric"><div class="oc-metric-label">Example Value</div><div class="oc-metric-val">~$1,840</div></div>
+            <div class="oc-metric"><div class="oc-metric-label">Listing Discount</div><div class="oc-metric-val">−10%</div></div>
+            <div class="oc-metric"><div class="oc-metric-label">Target ROI</div><div class="oc-metric-val">14–18%</div></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-line"></div>
+    <span class="footer-text">USDA PRICES CALIBRATED MARCH 2026 · VALUATION MODEL v2.0 · CATTLECOIN PLATFORM</span>
+    <div class="footer-line"></div>
+  </div>
+
+</div>
+</body>
+</html>
