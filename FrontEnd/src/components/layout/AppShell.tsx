@@ -1,47 +1,66 @@
 import { NavLink, Outlet, useLocation, useMatch, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Settings, User, Warehouse, Tractor, LogOut } from "lucide-react";
+import {
+  LayoutDashboard,
+  Settings,
+  User,
+  Warehouse,
+  Tractor,
+  LogOut,
+  CircleHelp,
+} from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 
 export function AppShell() {
-  const location  = useLocation();
-  const navigate  = useNavigate();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { currentUser, logout } = useAuth();
 
-  // Extract investor slug from URL if on an investor route
   const investorMatch = useMatch("/investor/:slug/*");
   const urlSlug = investorMatch?.params?.slug;
 
-  // Section label in the top header
   const sectionLabel = location.pathname.startsWith("/admin")
     ? "Administrator Portal"
     : location.pathname.startsWith("/rancher")
       ? "Rancher Portal"
       : location.pathname.startsWith("/feedlot")
         ? "Feedlot Portal"
-        : urlSlug
-          ? `Investor Portal — ${urlSlug}`
-          : "Portal";
+        : location.pathname.startsWith("/FAQ")
+          ? "FAQ"
+          : urlSlug
+            ? `Investor Portal - ${urlSlug}`
+            : "Portal";
 
-  // The slug to use in investor nav links comes from auth, not hardcoded
   const investorSlug = currentUser?.role === "investor" ? currentUser.slug : "";
 
-  const NAV_ITEMS = [
-    ...(currentUser?.role === "investor" ? [
-      { to: `/investor/${investorSlug}/dashboard`, label: "Dashboard", icon: LayoutDashboard, end: true },
-      { to: `/investor/${investorSlug}/holdings`, label: "Lots",      icon: Warehouse,       end: false },
-    ] : []),
-    ...(currentUser?.role === "rancher" ? [
-      { to: "/rancher", label: "My Herds", icon: User, end: false },
-    ] : []),
-    ...(currentUser?.role === "feedlot" ? [
-      { to: "/feedlot", label: "Feedlot", icon: Tractor, end: false },
-    ] : []),
-    ...(currentUser?.role === "admin" ? [
-      { to: "/admin", label: "Admin", icon: Settings, end: false },
-    ] : []),
+  const navItems = [
+    ...(currentUser?.role === "investor"
+      ? [
+          {
+            to: `/investor/${investorSlug}/dashboard`,
+            label: "Dashboard",
+            icon: LayoutDashboard,
+            end: true,
+          },
+          {
+            to: `/investor/${investorSlug}/holdings`,
+            label: "Lots",
+            icon: Warehouse,
+            end: false,
+          },
+        ]
+      : []),
+    ...(currentUser?.role === "rancher"
+      ? [{ to: "/rancher", label: "My Herds", icon: User, end: false }]
+      : []),
+    ...(currentUser?.role === "feedlot"
+      ? [{ to: "/feedlot", label: "Feedlot", icon: Tractor, end: false }]
+      : []),
+    ...(currentUser?.role === "admin"
+      ? [{ to: "/admin", label: "Admin", icon: Settings, end: false }]
+      : []),
   ];
 
   function handleLogout() {
@@ -51,7 +70,6 @@ export function AppShell() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* Sidebar */}
       <aside className="hidden w-60 shrink-0 border-r border-sidebar-border bg-sidebar md:flex md:flex-col">
         <div className="flex h-14 items-center px-4">
           <span className="text-lg font-bold tracking-tight text-sidebar-foreground">
@@ -60,7 +78,7 @@ export function AppShell() {
         </div>
         <Separator />
         <nav className="flex-1 space-y-1 px-2 py-4">
-          {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+          {navItems.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
@@ -79,17 +97,37 @@ export function AppShell() {
             </NavLink>
           ))}
         </nav>
+
         <div className="border-t border-sidebar-border px-4 py-3 space-y-2">
+          <NavLink
+            to="/FAQ"
+            end
+            className={({ isActive }) =>
+              cn(
+                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                isActive
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
+              )
+            }
+          >
+            <CircleHelp className="h-4 w-4" />
+            FAQ
+          </NavLink>
+
           {currentUser && (
             <div className="text-xs text-muted-foreground truncate">
               <span className="font-medium text-foreground">{currentUser.slug}</span>
-              <span className="ml-1 capitalize text-muted-foreground">({currentUser.role})</span>
+              <span className="ml-1 capitalize text-muted-foreground">
+                ({currentUser.role})
+              </span>
             </div>
           )}
+
           <Button
             variant="ghost"
             size="sm"
-            className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground px-0"
+            className="w-full justify-start gap-2 px-0 text-muted-foreground hover:text-foreground"
             onClick={handleLogout}
           >
             <LogOut className="h-4 w-4" />
@@ -98,9 +136,7 @@ export function AppShell() {
         </div>
       </aside>
 
-      {/* Main area */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Top header */}
         <header className="flex h-14 shrink-0 items-center border-b border-border bg-background px-6">
           <h1 className="text-sm font-semibold md:hidden">CattleCoin</h1>
           <div className="ml-auto flex items-center gap-4">
@@ -108,7 +144,6 @@ export function AppShell() {
           </div>
         </header>
 
-        {/* Page content */}
         <main className="flex-1 overflow-y-auto p-6">
           <div className="mx-auto max-w-7xl">
             <Outlet />

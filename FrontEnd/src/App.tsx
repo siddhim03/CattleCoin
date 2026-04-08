@@ -11,6 +11,7 @@ import { Admin } from "@/pages/Admin";
 import { InvestPage } from "@/pages/InvestPage";
 import { FeedlotPage } from "@/pages/FeedlotPage";
 import { WelcomePage } from "@/pages/WelcomePage";
+import { FAQPage } from "@/pages/FAQPage";
 import { AuthProvider, useAuth, homePathForRole } from "@/context/AuthContext";
 
 // ── Route guard ───────────────────────────────────────────────────────────────
@@ -88,6 +89,11 @@ function AppRoutes() {
         <Route
           path="/admin"
           element={<Protected role="admin"><Admin /></Protected>}
+        />
+
+        <Route
+          path="/FAQ"
+          element={<FAQPage />}
         />
       </Route>
 
